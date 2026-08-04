@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Core ERP · Pastelería Industrial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-app:#F6F2EA;
+  --bg-sidebar:#1B1815;
+  --bg-sidebar-2:#242019;
+  --card:#FFFFFF;
+  --border:#E4DCC9;
+  --ink:#231F1B;
+  --ink-soft:#6B6255;
+  --ink-faint:#A99F8E;
+  --accent:#C17A2E;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#F3E4CD;
+  --warn:#B8862E;
+  --warn-soft:#FBF0DC;
+  --danger:#A6383A;
+  --danger-soft:#F8E4E1;
+  --ok:#3F7D5C;
+  --ok-soft:#E4EEE5;
+  --mono:'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sans:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --slab:'Zilla Slab', Georgia, serif;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;min-height:100%;}
+body{
+  font-family:var(--sans);
+  background:var(--bg-app);
+  color:var(--ink);
+  font-size:14px;
+  -webkit-font-smoothing:antialiased;
+}
+#app{display:flex;min-height:100vh;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:13.5px;}
+a{color:inherit;}
+
+/* ---------- LOGIN ---------- */
+#login-screen{
+  position:fixed;inset:0;background:var(--bg-sidebar);
+  display:flex;align-items:center;justify-content:center;z-index:50;
+}
+#login-screen.hidden{display:none;}
+.login-card{
+  width:340px;background:var(--card);border-radius:14px;padding:32px 30px 28px;
+  box-shadow:0 24px 60px rgba(0,0,0,.4);
+}
+.login-brand{font-family:var(--slab);font-weight:700;font-size:22px;color:var(--ink);margin-bottom:2px;}
+.login-brand .dot{color:var(--accent);}
+.login-sub{font-size:12px;color:var(--ink-soft);font-family:var(--mono);margin-bottom:22px;}
+.login-card label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 5px;}
+.login-card input{width:100%;padding:10px 11px;border:1px solid var(--border);border-radius:8px;background:#FBF9F4;}
+.login-card input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+#login-btn{
+  width:100%;margin-top:20px;padding:11px;border:none;border-radius:8px;
+  background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:14px;
+}
+#login-btn:hover{background:#A9691F;}
+#login-error{color:var(--danger);font-size:12.5px;margin-top:10px;min-height:16px;}
+.login-hint{margin-top:18px;font-size:11.5px;color:var(--ink-faint);font-family:var(--mono);line-height:1.5;}
+
+/* ---------- SIDEBAR ---------- */
+#sidebar{
+  width:246px;flex:0 0 246px;background:var(--bg-sidebar);color:#C9C2B4;
+  padding:20px 0 22px;position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.brand{padding:0 20px 16px;margin-bottom:6px;border-bottom:1px solid #332C22;}
+.brand .name{font-family:var(--slab);font-size:17px;font-weight:700;color:#fff;}
+.brand .name .dot{color:var(--accent);}
+.brand .tag{font-size:10.5px;color:#7C7364;margin-top:3px;font-family:var(--mono);letter-spacing:.03em;}
+.navgroup{margin-top:16px;}
+.navgroup-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#665D4E;padding:0 20px;margin-bottom:6px;font-weight:700;}
+.navitem{
+  display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13.5px;
+  color:#C9C2B4;border-left:3px solid transparent;cursor:pointer;
+}
+.navitem:hover{background:var(--bg-sidebar-2);color:#fff;}
+.navitem.active{background:var(--bg-sidebar-2);color:#fff;border-left-color:var(--accent);font-weight:600;}
+.navitem .ic{width:16px;text-align:center;opacity:.85;font-size:13px;}
+.side-user{margin-top:auto;padding:16px 20px 0;border-top:1px solid #332C22;position:sticky;bottom:0;}
+.side-user .who{font-size:12.5px;color:#fff;font-weight:600;}
+.side-user .role{font-size:10.5px;color:#7C7364;font-family:var(--mono);margin-top:1px;}
+.side-user button{
+  margin-top:10px;width:100%;padding:7px;background:transparent;border:1px solid #3A3327;
+  color:#C9C2B4;border-radius:7px;font-size:12px;
+}
+.side-user button:hover{border-color:var(--accent);color:#fff;}
+
+/* ---------- MAIN ---------- */
+#main{flex:1;min-width:0;padding:26px 32px 60px;}
+.topbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px;}
+.topbar h1{font-family:var(--slab);font-size:24px;margin:0;font-weight:700;}
+.topbar .sub{font-size:12.5px;color:var(--ink-soft);font-family:var(--mono);}
+.api-pill{
+  font-family:var(--mono);font-size:11px;color:var(--ink-soft);background:var(--card);
+  border:1px solid var(--border);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:7px;
+}
+.api-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);}
+.api-dot.off{background:var(--danger);}
+
+.view{display:none;}
+.view.active{display:block;}
+
+.grid{display:grid;gap:16px;}
+.grid.cols-4{grid-template-columns:repeat(4,1fr);}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.grid.cols-2{grid-template-columns:1fr 1fr;}
+@media(max-width:1000px){.grid.cols-4{grid-template-columns:repeat(2,1fr);}.grid.cols-3{grid-template-columns:repeat(2,1fr);}.grid.cols-2{grid-template-columns:1fr;}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.card h3{margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);font-weight:700;}
+.card .big{font-family:var(--slab);font-size:30px;font-weight:700;margin-top:4px;}
+.card .note{font-size:11.5px;color:var(--ink-faint);margin-top:5px;}
+
+.section{margin-top:26px;}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-head h2{font-family:var(--slab);font-size:17px;margin:0;font-weight:700;}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);padding:8px 10px;border-bottom:1px solid var(--border);}
+td{padding:9px 10px;border-bottom:1px solid #EFE9DA;}
+tr:last-child td{border-bottom:none;}
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.table-card .table-scroll{overflow-x:auto;}
+.empty-row td{color:var(--ink-faint);font-style:italic;text-align:center;padding:22px;}
+
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--mono);}
+.badge.ok{background:var(--ok-soft);color:var(--ok);}
+.badge.warn{background:var(--warn-soft);color:var(--warn);}
+.badge.danger{background:var(--danger-soft);color:var(--danger);}
+.badge.accent{background:var(--accent-soft);color:#8A5A20;}
+.badge.neutral{background:#EFEADC;color:var(--ink-soft);}
+
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.form-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;}
+.form-row.single{grid-template-columns:1fr;}
+.form-field label{display:block;font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;}
+.form-field input,.form-field select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:#FBF9F4;}
+.form-field input:focus,.form-field select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
+.btn{padding:9px 16px;border-radius:7px;border:none;font-weight:600;font-size:13px;}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:#A9691F;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--ink);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:6px;}
+.msg{font-size:12.5px;margin-top:10px;min-height:14px;}
+.msg.err{color:var(--danger);}
+.msg.ok{color:var(--ok);}
+
+.ingredientes-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+.ingrediente-row{display:grid;grid-template-columns:1fr 110px 30px;gap:8px;align-items:center;}
+.ingrediente-row button{background:var(--danger-soft);color:var(--danger);border:none;border-radius:6px;height:34px;font-weight:700;}
+
+/* ---------- OP TICKET (firma visual) ---------- */
+.op-ticket{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;}
+.op-ticket-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.op-code{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink);}
+.op-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.op-steps{display:flex;flex-wrap:wrap;gap:0;border-top:1px dashed var(--border);padding-top:12px;}
+.op-step{
+  flex:1;min-width:78px;text-align:center;padding:8px 4px;position:relative;
+  font-family:var(--mono);font-size:10px;color:var(--ink-faint);border-right:1px dashed var(--border);
+}
+.op-step:last-child{border-right:none;}
+.op-step .n{display:block;font-size:9px;margin-bottom:3px;}
+.op-step.done{color:var(--ok);font-weight:700;}
+.op-step.current{color:var(--accent);font-weight:700;}
+.op-step.current::after{content:"●";display:block;margin-top:3px;}
+.op-actions{display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;}
+.op-actions input{width:110px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;}
+
+.hidden{display:none !important;}
+::selection{background:var(--accent-soft);}
+
+/* ---------- SEMAFOROS / KANBAN / IA ---------- */
+.semaforo-row{display:flex;gap:12px;flex-wrap:wrap;}
+.semaforo-card{flex:1;min-width:150px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;border-left:4px solid var(--ink-faint);}
+.semaforo-card.verde{border-left-color:var(--ok);}
+.semaforo-card.amarillo{border-left-color:var(--warn);}
+.semaforo-card.rojo{border-left-color:var(--danger);}
+.semaforo-card.gris{border-left-color:var(--ink-faint);}
+.semaforo-card .suc{font-weight:700;font-size:13.5px;}
+.semaforo-card .val{font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:4px;}
+
+.kanban-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;}
+.kanban-col{flex:0 0 118px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 8px;text-align:center;}
+.kanban-col .lbl{font-size:9.5px;font-family:var(--mono);color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;min-height:24px;}
+.kanban-col .n{font-family:var(--slab);font-size:24px;font-weight:700;margin-top:6px;}
+
+.metric-bar{background:#EFEADC;border-radius:6px;height:8px;margin-top:8px;overflow:hidden;}
+.metric-bar-fill{background:var(--accent);height:100%;border-radius:6px;}
+
+.ia-questions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.ia-q-btn{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:12.5px;color:var(--ink);}
+.ia-q-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ia-answer{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;}
+.ia-answer .q{font-family:var(--mono);font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+.ia-answer .a{font-size:15px;line-height:1.5;font-weight:600;}
+.ia-params{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end;}
+.ia-params .form-field{width:220px;margin-bottom:0;}
+
+/* ---------- SUBTABS (módulos con varias herramientas) ---------- */
+.subtabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:18px;border-bottom:1px solid var(--border);}
+.subtab{padding:9px 14px;font-size:12.5px;font-weight:600;color:var(--ink-soft);border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;}
+.subtab:hover{color:var(--ink);}
+.subtab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.subview{display:none;}
+.subview.active{display:block;}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+.stat-box{flex:1;min-width:140px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stat-box .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);font-weight:700;}
+.stat-box .val{font-family:var(--slab);font-size:22px;font-weight:700;margin-top:4px;}
+.kv-list{display:flex;flex-direction:column;gap:6px;}
+.kv-row{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px dashed var(--border);}
+.kv-row:last-child{border-bottom:none;}
+.inline-form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;}
+.inline-form .form-field{width:170px;margin-bottom:0;}
+.inline-form .form-field.grow{flex:1;min-width:170px;}
+textarea.ff{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:#FBF9F4;font-family:inherit;font-size:13.5px;min-height:56px;}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">Core ERP <span class="dot">·</span> Pastelería</div>
+    <div class="login-sub">SOLICITADA → FACTURADO</div>
+    <label for="login-user">Usuario</label>
+    <input id="login-user" value="admin" autocomplete="username">
+    <label for="login-pass">Contraseña</label>
+    <input id="login-pass" type="password" value="admin123" autocomplete="current-password">
+    <label for="login-api">API base URL</label>
+    <input id="login-api" value="http://127.0.0.1:8000">
+    <button id="login-btn" onclick="doLogin()">Ingresar</button>
+    <div id="login-error"></div>
+    <div class="login-hint">Requiere el backend core_erp corriendo:<br>uvicorn app.main:app --reload</div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div id="sidebar">
+    <div class="brand">
+      <div class="name">Core ERP <span class="dot">·</span></div>
+      <div class="tag">PASTELERÍA INDUSTRIAL</div>
+    </div>
+    <div class="navgroup">
+      <div class="navgroup-label">General</div>
+      <div class="navitem active" data-view="dashboard"><span class="ic">◧</span> Dashboard</div>
+    </div>
+    <div class="navgroup">
+      <div class="navgroup-label">Maestros</div>
+      <div class="navitem" data-view="productos"><span class="ic">▤</span> Productos</div>
+      <div class="navitem" data-view="recetas"><span class="ic">✎</span> Recetas</div>
+      <div class="navitem" data-view="proveedores"><span class="ic">◈</span> Proveedores</div>
+    </div>
+    <div class="navgroup">
+      <div class="navgroup-label">Operación</div>
+      <div class="navitem" data-view="compras"><span class="ic">↓</span> Compras</div>
+      <div class="navitem" data-view="produccion"><span class="ic">◔</span> Producción</div>
+      <div class="navitem" data-view="logistica"><span class="ic">⇥</span> Despacho / Recepción</div>
+      <div class="navitem" data-view="mermas"><span class="ic">×</span> Mermas</div>
+    </div>
+    <div class="navgroup">
+      <div class="navgroup-label">Comercial</div>
+      <div class="navitem" data-view="ventas"><span class="ic">↑</span> Ventas</div>
+      <div class="navitem" data-view="rentabilidad"><span class="ic">%</span> Rentabilidad</div>
+    </div>
+    <div class="navgroup">
+      <div class="navgroup-label">Inteligencia de negocio</div>
+      <div class="navitem" data-view="ejecutivo"><span class="ic">◆</span> Dashboard Ejecutivo</div>
+      <div class="navitem" data-view="lean"><span class="ic">⌘</span> Lean / Six Sigma / TOC</div>
+      <div class="navitem" data-view="inteligencia"><span class="ic">✦</span> Centro de Inteligencia</div>
+    </div>
+    <div class="navgroup">
+      <div class="navgroup-label">Captura de planta</div>
+      <div class="navitem" data-view="lean-captura"><span class="ic">⚙</span> Lean Captura (5S/Kaizen/SMED...)</div>
+      <div class="navitem" data-view="spc"><span class="ic">σ</span> Six Sigma SPC</div>
+    </div>
+    <div class="navgroup">
+      <div class="navgroup-label">Inteligencia avanzada</div>
+      <div class="navitem" data-view="competencia"><span class="ic">⚖</span> Competencia</div>
+      <div class="navitem" data-view="tributaria"><span class="ic">§</span> Tributaria SUNAT</div>
+    </div>
+    <div class="navgroup">
+      <div class="navgroup-label">Reportes</div>
+      <div class="navitem" data-view="reportes"><span class="ic">▣</span> Reportes</div>
+    </div>
+    <div class="side-user">
+      <div class="who" id="side-user-name">—</div>
+      <div class="role" id="side-user-suc">—</div>
+      <button onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div class="topbar">
+      <div>
+        <h1 id="view-title">Dashboard</h1>
+        <div class="sub" id="view-sub">Resumen general de la operación</div>
+      </div>
+      <div class="api-pill"><span class="api-dot" id="api-dot"></span> <span id="api-url-label"></span></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="grid cols-4">
+        <div class="card"><h3>Sucursales</h3><div class="big" id="kpi-sucursales">—</div><div class="note">activas en la red</div></div>
+        <div class="card"><h3>Productos</h3><div class="big" id="kpi-productos">—</div><div class="note">insumos + terminados</div></div>
+        <div class="card"><h3>OP en curso</h3><div class="big" id="kpi-ops">—</div><div class="note">no facturadas</div></div>
+        <div class="card"><h3>Valor de mermas</h3><div class="big" id="kpi-mermas">—</div><div class="note">acumulado, S/</div></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Stock por sucursal</h2>
+          <select id="dash-suc-select" onchange="loadDashboardStock()"></select>
+        </div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Producto</th><th>Disponible</th><th>Valor (S/)</th></tr></thead>
+          <tbody id="dash-stock-body"></tbody>
+        </table></div></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Últimas órdenes de producción</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Código</th><th>Producto</th><th>Estado</th><th>Cant. solicitada</th></tr></thead>
+          <tbody id="dash-ops-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTOS -->
+    <div class="view" id="view-productos">
+      <div class="grid cols-2">
+        <div class="form-card">
+          <div class="section-head"><h2>Nuevo producto</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Código</label><input id="prod-codigo" placeholder="INS-VAINILLA"></div>
+            <div class="form-field"><label>Nombre</label><input id="prod-nombre" placeholder="Esencia de vainilla"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Unidad</label><input id="prod-unidad" value="kg"></div>
+            <div class="form-field"><label>Tipo</label>
+              <select id="prod-tipo">
+                <option value="INSUMO">Insumo</option>
+                <option value="SEMIELABORADO">Semielaborado</option>
+                <option value="TERMINADO">Terminado</option>
+                <option value="MERCADERIA">Mercadería</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="crearProducto()">Crear producto</button>
+          <div class="msg" id="prod-msg"></div>
+        </div>
+        <div class="card">
+          <h3>Tipos de producto</h3>
+          <p class="note" style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;">
+            <b>Insumo</b>: materia prima consumida por recetas (harina, azúcar).<br>
+            <b>Semielaborado</b>: producido internamente y usado en otras recetas.<br>
+            <b>Terminado</b>: producto final vendible.<br>
+            <b>Mercadería</b>: reventa directa, sin transformación.
+          </p>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Catálogo de productos</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>ID</th><th>Código</th><th>Nombre</th><th>Unidad</th><th>Tipo</th></tr></thead>
+          <tbody id="productos-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- PROVEEDORES -->
+    <div class="view" id="view-proveedores">
+      <div class="form-card">
+        <div class="section-head"><h2>Nuevo proveedor</h2></div>
+        <div class="form-row">
+          <div class="form-field"><label>Nombre</label><input id="prov-nombre"></div>
+          <div class="form-field"><label>RUC</label><input id="prov-ruc"></div>
+        </div>
+        <div class="form-row single">
+          <div class="form-field"><label>Contacto</label><input id="prov-contacto" placeholder="correo o teléfono"></div>
+        </div>
+        <button class="btn btn-accent" onclick="crearProveedor()">Crear proveedor</button>
+        <div class="msg" id="prov-msg"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Proveedores registrados</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>ID</th><th>Nombre</th><th>RUC</th><th>Contacto</th></tr></thead>
+          <tbody id="proveedores-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- RECETAS -->
+    <div class="view" id="view-recetas">
+      <div class="grid cols-2">
+        <div class="form-card">
+          <div class="section-head"><h2>Nueva versión de receta</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Producto terminado</label><select id="rec-producto"></select></div>
+            <div class="form-field"><label>Rendimiento (unidades)</label><input id="rec-rendimiento" type="number" value="10"></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-field"><label>Merma estimada (%, ej. 0.05 = 5%)</label><input id="rec-merma" type="number" step="0.01" value="0.05"></div>
+          </div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px;">Ingredientes</label>
+          <div class="ingredientes-list" id="rec-ingredientes"></div>
+          <button class="btn btn-ghost btn-sm" onclick="agregarFilaIngrediente()">+ agregar insumo</button>
+          <div style="margin-top:14px;"><button class="btn btn-accent" onclick="crearReceta()">Guardar receta</button></div>
+          <div class="msg" id="rec-msg"></div>
+        </div>
+        <div class="card">
+          <h3>Consultar receta activa</h3>
+          <div class="form-row single" style="margin-top:10px;">
+            <div class="form-field"><label>Producto</label><select id="rec-consulta-producto"></select></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-field"><label>Almacén (sucursal para el costo)</label><select id="rec-consulta-sucursal"></select></div>
+          </div>
+          <button class="btn btn-ghost" onclick="consultarReceta()">Ver receta y costo estándar</button>
+          <div id="rec-consulta-result" style="margin-top:14px;font-size:13px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPRAS -->
+    <div class="view" id="view-compras">
+      <div class="form-card">
+        <div class="section-head"><h2>Nueva orden de compra</h2></div>
+        <div class="form-row">
+          <div class="form-field"><label>Proveedor</label><select id="oc-proveedor"></select></div>
+          <div class="form-field"><label>Sucursal (almacén destino)</label><select id="oc-sucursal"></select></div>
+        </div>
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px;">Ítems</label>
+        <div class="ingredientes-list" id="oc-items"></div>
+        <button class="btn btn-ghost btn-sm" onclick="agregarFilaOC()">+ agregar ítem</button>
+        <div style="margin-top:14px;"><button class="btn btn-accent" onclick="crearOC()">Crear orden de compra</button></div>
+        <div class="msg" id="oc-msg"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Órdenes de compra</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Código</th><th>Proveedor</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="compras-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- PRODUCCIÓN -->
+    <div class="view" id="view-produccion">
+      <div class="form-card">
+        <div class="section-head"><h2>Nueva orden de producción</h2></div>
+        <div class="form-row">
+          <div class="form-field"><label>Producto (con receta activa)</label><select id="op-producto"></select></div>
+          <div class="form-field"><label>Sucursal</label><select id="op-sucursal"></select></div>
+        </div>
+        <div class="form-row single">
+          <div class="form-field"><label>Cantidad solicitada</label><input id="op-cantidad" type="number" value="10"></div>
+        </div>
+        <button class="btn btn-accent" onclick="crearOP()">Generar OP</button>
+        <div class="msg" id="op-msg"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Fichas de producción</h2></div>
+        <div id="ops-list"></div>
+      </div>
+    </div>
+
+    <!-- DESPACHO / RECEPCIÓN -->
+    <div class="view" id="view-logistica">
+      <div class="note" style="margin-bottom:16px;">
+        Una OP en estado <b>EMPAQUE</b> se despacha desde aquí (queda registrado responsable y vehículo).
+        Un despacho <b>EN_RUTA</b> se recepciona desde aquí (cantidad recepcionada, merma de transporte y aceptación),
+        lo que avanza la OP a RECEPCION automáticamente.
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Despachos</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>OP</th><th>Tienda</th><th>Responsable</th><th>Vehículo</th><th>Estado</th><th>Recepción</th></tr></thead>
+          <tbody id="logistica-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- MERMAS -->
+    <div class="view" id="view-mermas">
+      <div class="form-card">
+        <div class="section-head"><h2>Registrar merma</h2></div>
+        <div class="form-row">
+          <div class="form-field"><label>Producto</label><select id="merma-producto"></select></div>
+          <div class="form-field"><label>Sucursal</label><select id="merma-sucursal"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Cantidad</label><input id="merma-cantidad" type="number" value="1"></div>
+          <div class="form-field"><label>Motivo</label><input id="merma-motivo" placeholder="Rotura, vencimiento, conteo..."></div>
+        </div>
+        <button class="btn btn-accent" onclick="crearMerma()">Registrar merma</button>
+        <div class="msg" id="merma-msg"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Historial de mermas</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Producto</th><th>Cantidad</th><th>Motivo</th><th>Costo valorizado (S/)</th></tr></thead>
+          <tbody id="mermas-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- VENTAS -->
+    <div class="view" id="view-ventas">
+      <div class="form-card">
+        <div class="section-head"><h2>Registrar venta (POS)</h2></div>
+        <div class="form-row">
+          <div class="form-field"><label>Producto</label><select id="venta-producto"></select></div>
+          <div class="form-field"><label>Sucursal</label><select id="venta-sucursal"></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Cantidad vendida</label><input id="venta-cantidad" type="number" value="1"></div>
+          <div class="form-field"><label>Total venta (S/)</label><input id="venta-total" type="number" value="0"></div>
+        </div>
+        <button class="btn btn-accent" onclick="crearVenta()">Registrar venta</button>
+        <div class="msg" id="venta-msg"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Ventas registradas</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Producto</th><th>Sucursal</th><th>Cantidad</th><th>Total (S/)</th></tr></thead>
+          <tbody id="ventas-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- RENTABILIDAD -->
+    <div class="view" id="view-rentabilidad">
+      <div class="form-card" style="max-width:360px;">
+        <div class="form-field"><label>Sucursal</label><select id="rent-sucursal" onchange="cargarRentabilidad()"></select></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Rentabilidad real vs. margen objetivo</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Producto</th><th>Cant. vendida</th><th>Venta (S/)</th><th>Costo est. (S/)</th><th>Utilidad</th><th>Margen real</th><th>Objetivo</th><th>Estado</th></tr></thead>
+          <tbody id="rentabilidad-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD EJECUTIVO -->
+    <div class="view" id="view-ejecutivo">
+      <div class="grid cols-4">
+        <div class="card"><h3>Ventas hoy</h3><div class="big" id="ej-ventas-hoy">—</div><div class="note" id="ej-ventas-hist">histórico —</div></div>
+        <div class="card"><h3>Utilidad / EBITDA aprox.</h3><div class="big" id="ej-utilidad">—</div><div class="note" id="ej-margen">margen —</div></div>
+        <div class="card"><h3>Pedidos pendientes</h3><div class="big" id="ej-pedidos">—</div><div class="note" id="ej-unidades">unidades producidas hoy —</div></div>
+        <div class="card"><h3>Mermas</h3><div class="big" id="ej-mermas-hoy">—</div><div class="note" id="ej-mermas-total">histórico —</div></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Semáforo por tienda</h2></div>
+        <div class="semaforo-row" id="ej-semaforos"></div>
+      </div>
+      <div class="grid cols-2" style="margin-top:26px;">
+        <div class="section" style="margin-top:0;">
+          <div class="section-head"><h2>Ranking de tiendas</h2></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Tienda</th><th>Venta</th><th>Utilidad</th><th>Margen</th></tr></thead>
+            <tbody id="ej-ranking-tiendas"></tbody>
+          </table></div></div>
+        </div>
+        <div class="section" style="margin-top:0;">
+          <div class="section-head"><h2>Ranking de productos</h2></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Producto</th><th>Venta</th><th>Utilidad</th></tr></thead>
+            <tbody id="ej-ranking-productos"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Forecast de ventas (próxima semana)</h2></div>
+        <div class="card"><div class="big" id="ej-forecast">—</div><div class="note" id="ej-forecast-nota">proyección lineal sobre el promedio diario de los últimos 7 días</div></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>ABC / Pareto de productos (por venta)</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Producto</th><th>Venta</th><th>% acumulado</th><th>Clase</th></tr></thead>
+          <tbody id="ej-pareto"></tbody>
+        </table></div></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>XYZ de productos (variabilidad de demanda, últimos 30 días)</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Producto</th><th>Demanda prom. diaria</th><th>Coef. variación</th><th>Clase</th></tr></thead>
+          <tbody id="ej-xyz"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- LEAN / SIX SIGMA / TOC -->
+    <div class="view" id="view-lean">
+      <div class="section" style="margin-top:0;">
+        <div class="section-head"><h2>Tablero Kanban (OPs por etapa)</h2></div>
+        <div class="kanban-row" id="lean-kanban"></div>
+      </div>
+      <div class="grid cols-2" style="margin-top:26px;">
+        <div class="section" style="margin-top:0;">
+          <div class="section-head"><h2>OEE aproximado</h2></div>
+          <div class="card">
+            <h3>OEE</h3><div class="big" id="lean-oee">—</div>
+            <div id="lean-oee-detalle" style="margin-top:12px;"></div>
+            <div class="note" style="margin-top:10px;">Disponibilidad × Rendimiento × Calidad. Ver metodología en el README.</div>
+          </div>
+        </div>
+        <div class="section" style="margin-top:0;">
+          <div class="section-head"><h2>Capacidad de proceso (Cp/Cpk)</h2></div>
+          <div class="card">
+            <div class="form-field" style="max-width:200px;margin-bottom:12px;">
+              <label>Tolerancia ± (%)</label>
+              <input id="lean-tolerancia" type="number" value="10" step="1" onchange="loadLeanCapacidad()">
+            </div>
+            <div id="lean-cpk-body">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Cuello de botella (Teoría de Restricciones)</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Etapa</th><th>Tiempo promedio (h)</th><th>Muestras</th></tr></thead>
+          <tbody id="lean-cuello-body"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+
+    <!-- CENTRO DE INTELIGENCIA -->
+    <div class="view" id="view-inteligencia">
+      <div class="ia-questions" id="ia-questions"></div>
+      <div class="ia-params" id="ia-params"></div>
+      <div id="ia-answer-wrap"></div>
+    </div>
+
+    <!-- REPORTES -->
+    <div class="view" id="view-reportes">
+      <div class="section">
+        <div class="section-head"><h2>Hoja de dosificación (PDF)</h2></div>
+        <div class="card">
+          <div class="form-row">
+            <div class="form-field"><label>Orden de producción</label><select id="rep-op"></select></div>
+          </div>
+          <button class="btn btn-accent" onclick="descargarDosificacion()">Descargar PDF</button>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><h2>Exportes Excel</h2></div>
+        <div class="card" style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="descargarReporte('/api/reportes/produccion.xlsx','produccion.xlsx')">Producción (.xlsx)</button>
+          <button class="btn btn-ghost" onclick="descargarReporte('/api/reportes/kardex.xlsx','kardex.xlsx')">Kardex (.xlsx)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAN CAPTURA (5S / KAIZEN / SMED / JIDOKA / ANDON / HEIJUNKA / VSM) -->
+    <div class="view" id="view-lean-captura">
+      <div class="subtabs" id="lc-subtabs">
+        <div class="subtab active" data-sub="5s">5S</div>
+        <div class="subtab" data-sub="kaizen">Kaizen</div>
+        <div class="subtab" data-sub="smed">SMED</div>
+        <div class="subtab" data-sub="jidoka">Jidoka</div>
+        <div class="subtab" data-sub="andon">Andon</div>
+        <div class="subtab" data-sub="heijunka">Heijunka</div>
+        <div class="subtab" data-sub="vsm">VSM</div>
+      </div>
+
+      <!-- 5S -->
+      <div class="subview active" id="lc-sub-5s">
+        <div class="form-card">
+          <div class="section-head"><h2>Registrar auditoría 5S</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Sucursal</label><select id="lc5s-sucursal"></select></div>
+            <div class="form-field"><label>Área</label><input id="lc5s-area" placeholder="Horneado, Almacén..."></div>
+          </div>
+          <div class="form-row" style="grid-template-columns:repeat(5,1fr);">
+            <div class="form-field"><label>Seiri (0-5)</label><input id="lc5s-seiri" type="number" min="0" max="5" value="3"></div>
+            <div class="form-field"><label>Seiton (0-5)</label><input id="lc5s-seiton" type="number" min="0" max="5" value="3"></div>
+            <div class="form-field"><label>Seiso (0-5)</label><input id="lc5s-seiso" type="number" min="0" max="5" value="3"></div>
+            <div class="form-field"><label>Seiketsu (0-5)</label><input id="lc5s-seiketsu" type="number" min="0" max="5" value="3"></div>
+            <div class="form-field"><label>Shitsuke (0-5)</label><input id="lc5s-shitsuke" type="number" min="0" max="5" value="3"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Auditor</label><input id="lc5s-auditor"></div>
+            <div class="form-field"><label>Observaciones</label><input id="lc5s-observaciones"></div>
+          </div>
+          <button class="btn btn-accent" onclick="crear5S()">Registrar auditoría</button>
+          <div class="msg" id="lc5s-msg"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Puntaje 5S por área (última auditoría)</h2></div>
+          <div class="stat-row"><div class="stat-box"><div class="lbl">Promedio general</div><div class="val" id="lc5s-promedio">—</div></div></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Área</th><th>Puntaje</th><th>Seiri</th><th>Seiton</th><th>Seiso</th><th>Seiketsu</th><th>Shitsuke</th><th>Fecha</th></tr></thead>
+            <tbody id="lc5s-body"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+
+      <!-- KAIZEN -->
+      <div class="subview" id="lc-sub-kaizen">
+        <div class="form-card">
+          <div class="section-head"><h2>Nueva propuesta Kaizen</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Sucursal</label><select id="lck-sucursal"></select></div>
+            <div class="form-field"><label>Área</label><input id="lck-area"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Título</label><input id="lck-titulo"></div>
+            <div class="form-field"><label>Responsable</label><input id="lck-responsable"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Descripción</label><input id="lck-descripcion"></div>
+            <div class="form-field"><label>Ahorro estimado (S/)</label><input id="lck-ahorro" type="number"></div>
+          </div>
+          <button class="btn btn-accent" onclick="crearKaizenLC()">Crear propuesta</button>
+          <div class="msg" id="lck-msg"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Resumen</h2></div>
+          <div class="stat-row" id="lck-resumen"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Propuestas</h2></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Área</th><th>Título</th><th>Responsable</th><th>Ahorro est.</th><th>Estado</th><th>Avanzar</th></tr></thead>
+            <tbody id="lck-body"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+
+      <!-- SMED -->
+      <div class="subview" id="lc-sub-smed">
+        <div class="form-card">
+          <div class="section-head"><h2>Registrar cambio de formato (SMED)</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Sucursal</label><select id="lcsmed-sucursal"></select></div>
+            <div class="form-field"><label>Proceso</label><input id="lcsmed-proceso" placeholder="Cambio de molde, línea..."></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Setup antes (min)</label><input id="lcsmed-antes" type="number"></div>
+            <div class="form-field"><label>Setup después (min)</label><input id="lcsmed-despues" type="number"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Tiempo interno (min)</label><input id="lcsmed-interno" type="number"></div>
+            <div class="form-field"><label>Tiempo externo (min)</label><input id="lcsmed-externo" type="number"></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-field"><label>Responsable</label><input id="lcsmed-responsable"></div>
+          </div>
+          <button class="btn btn-accent" onclick="crearSmed()">Registrar</button>
+          <div class="msg" id="lcsmed-msg"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Registros SMED</h2></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Proceso</th><th>Antes (min)</th><th>Después (min)</th><th>Mejora</th><th>Interno</th><th>Externo</th><th>Fecha</th></tr></thead>
+            <tbody id="lcsmed-body"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+
+      <!-- JIDOKA -->
+      <div class="subview" id="lc-sub-jidoka">
+        <div class="form-card">
+          <div class="section-head"><h2>Registrar paro (Jidoka)</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Sucursal</label><select id="lcj-sucursal"></select></div>
+            <div class="form-field"><label>Etapa</label><input id="lcj-etapa" placeholder="HORNEADO, EMPAQUE..."></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Motivo del paro</label><input id="lcj-motivo"></div>
+            <div class="form-field"><label>Tiempo de paro (min)</label><input id="lcj-tiempo" type="number"></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-field"><label>OP relacionada (opcional, ID)</label><input id="lcj-op" type="number"></div>
+          </div>
+          <button class="btn btn-accent" onclick="crearJidoka()">Registrar paro</button>
+          <div class="msg" id="lcj-msg"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Resumen</h2></div>
+          <div class="stat-row" id="lcj-resumen"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Eventos Jidoka</h2></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Etapa</th><th>Motivo</th><th>Tiempo paro</th><th>Estado</th><th>Acción</th></tr></thead>
+            <tbody id="lcj-body"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+
+      <!-- ANDON -->
+      <div class="subview" id="lc-sub-andon">
+        <div class="form-card">
+          <div class="section-head"><h2>Nueva alerta Andon</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Sucursal</label><select id="lca-sucursal"></select></div>
+            <div class="form-field"><label>Etapa</label><input id="lca-etapa"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Tipo</label>
+              <select id="lca-tipo">
+                <option value="CALIDAD">Calidad</option>
+                <option value="MATERIAL">Material</option>
+                <option value="MANTENIMIENTO">Mantenimiento</option>
+                <option value="SEGURIDAD">Seguridad</option>
+              </select>
+            </div>
+            <div class="form-field"><label>Descripción</label><input id="lca-descripcion"></div>
+          </div>
+          <button class="btn btn-accent" onclick="crearAndon()">Crear alerta</button>
+          <div class="msg" id="lca-msg"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Resumen</h2></div>
+          <div class="stat-row" id="lca-resumen"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Alertas</h2></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Etapa</th><th>Tipo</th><th>Descripción</th><th>Estado</th><th>Acción</th></tr></thead>
+            <tbody id="lca-body"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+
+      <!-- HEIJUNKA -->
+      <div class="subview" id="lc-sub-heijunka">
+        <div class="form-card">
+          <div class="section-head"><h2>Plan Heijunka (nivelación de producción)</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Sucursal</label><select id="lch-sucursal"></select></div>
+            <div class="form-field"><label>Producto</label><select id="lch-producto"></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Fecha</label><input id="lch-fecha" type="date"></div>
+            <div class="form-field"><label>Cantidad planificada</label><input id="lch-cantidad" type="number"></div>
+          </div>
+          <button class="btn btn-accent" onclick="crearHeijunka()">Registrar plan</button>
+          <div class="msg" id="lch-msg"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Resumen de nivelación</h2></div>
+          <div class="stat-row" id="lch-resumen"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h2>Planes</h2></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Producto</th><th>Fecha</th><th>Planificado</th><th>Real</th><th>Cumplimiento</th><th>Registrar real</th></tr></thead>
+            <tbody id="lch-body"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+
+      <!-- VSM -->
+      <div class="subview" id="lc-sub-vsm">
+        <div class="form-card">
+          <div class="section-head"><h2>Agregar paso al mapa de flujo de valor (VSM)</h2></div>
+          <div class="form-row">
+            <div class="form-field"><label>Sucursal</label><select id="lcv-sucursal"></select></div>
+            <div class="form-field"><label>Proceso</label><input id="lcv-proceso" placeholder="Producción torta chocolate..."></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Orden</label><input id="lcv-orden" type="number" value="1"></div>
+            <div class="form-field"><label>Nombre del paso</label><input id="lcv-nombre"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label>Tiempo de ciclo (min)</label><input id="lcv-ciclo" type="number"></div>
+            <div class="form-field"><label>Tiempo de espera (min)</label><input id="lcv-espera" type="number" value="0"></div>
+          </div>
+          <div class="form-row single">
+            <div class="form-field"><label>¿Agrega valor?</label>
+              <select id="lcv-valor"><option value="true">Sí</option><option value="false">No</option></select>
+            </div>
+          </div>
+          <button class="btn btn-accent" onclick="crearVsmPaso()">Agregar paso</button>
+          <div class="msg" id="lcv-msg"></div>
+        </div>
+        <div class="section">
+          <div class="section-head">
+            <h2>Mapa de flujo de valor</h2>
+            <select id="lcv-proceso-select" style="width:260px;" onchange="loadVsmResumen()"></select>
+          </div>
+          <div class="stat-row" id="lcv-resumen"></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>#</th><th>Paso</th><th>T. ciclo (min)</th><th>T. espera (min)</th><th>¿VA?</th></tr></thead>
+            <tbody id="lcv-body"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIX SIGMA SPC -->
+    <div class="view" id="view-spc">
+      <div class="form-card">
+        <div class="section-head"><h2>Registrar medición SPC</h2></div>
+        <div class="form-row">
+          <div class="form-field"><label>Sucursal</label><select id="spc-sucursal"></select></div>
+          <div class="form-field"><label>Variable</label><input id="spc-variable" placeholder="peso_torta_kg, temp_horno_c..."></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Valor</label><input id="spc-valor" type="number" step="any"></div>
+          <div class="form-field"><label>Producto (opcional)</label><select id="spc-producto"><option value="">—</option></select></div>
+        </div>
+        <div class="form-row single">
+          <div class="form-field"><label>Lote (opcional)</label><input id="spc-lote"></div>
+        </div>
+        <button class="btn btn-accent" onclick="crearMedicionSPC()">Registrar medición</button>
+        <div class="msg" id="spc-msg"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>Carta de control (I-MR)</h2>
+          <select id="spc-var-select" style="width:260px;" onchange="loadSpcVariable()"></select>
+        </div>
+        <div class="stat-row" id="spc-cartarow"></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>#</th><th>Valor</th><th>Lote</th><th>Fecha</th><th>Estado</th></tr></thead>
+          <tbody id="spc-carta-body"></tbody>
+        </table></div></div>
+      </div>
+
+      <div class="grid cols-2" style="margin-top:26px;">
+        <div class="section" style="margin-top:0;">
+          <div class="section-head"><h2>Histograma</h2></div>
+          <div class="table-card"><div class="table-scroll"><table>
+            <thead><tr><th>Rango</th><th>Frecuencia</th></tr></thead>
+            <tbody id="spc-hist-body"></tbody>
+          </table></div></div>
+        </div>
+        <div class="section" style="margin-top:0;">
+          <div class="section-head"><h2>Capacidad de proceso (Cp/Cpk)</h2></div>
+          <div class="card">
+            <div class="form-row">
+              <div class="form-field"><label>LSL (límite inferior)</label><input id="spc-lsl" type="number" step="any"></div>
+              <div class="form-field"><label>USL (límite superior)</label><input id="spc-usl" type="number" step="any"></div>
+            </div>
+            <button class="btn btn-ghost" onclick="calcularCpCpk()">Calcular</button>
+            <div id="spc-cpk-body" style="margin-top:12px;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPETENCIA -->
+    <div class="view" id="view-competencia">
+      <div class="form-card">
+        <div class="section-head"><h2>Registrar precio de competencia</h2></div>
+        <div class="form-row">
+          <div class="form-field"><label>Producto</label><select id="comp-producto-reg"></select></div>
+          <div class="form-field"><label>Competidor</label><input id="comp-competidor"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Precio (S/)</label><input id="comp-precio" type="number" step="any"></div>
+          <div class="form-field"><label>Sucursal (opcional)</label><select id="comp-sucursal"><option value="">Todas</option></select></div>
+        </div>
+        <button class="btn btn-accent" onclick="registrarPrecioCompetencia()">Registrar precio</button>
+        <div class="msg" id="comp-msg"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>Análisis por producto</h2>
+          <select id="comp-producto-consulta" style="width:260px;" onchange="loadCompetenciaProducto()"></select>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Comparativo de precios</h3>
+            <div id="comp-comparativo" style="margin-top:8px;">—</div>
+          </div>
+          <div class="card">
+            <h3>Elasticidad precio-demanda</h3>
+            <div id="comp-elasticidad" style="margin-top:8px;">—</div>
+          </div>
+        </div>
+        <div class="table-card" style="margin-top:16px;"><div class="table-scroll"><table>
+          <thead><tr><th>Competidor</th><th>Precio</th><th>Diferencia vs. propio</th><th>Fecha</th></tr></thead>
+          <tbody id="comp-competencia-body"></tbody>
+        </table></div></div>
+      </div>
+
+      <div class="grid cols-2" style="margin-top:26px;">
+        <div class="section" style="margin-top:0;">
+          <div class="section-head"><h2>Precio recomendado</h2></div>
+          <div class="card">
+            <div class="form-field" style="max-width:220px;"><label>Sucursal</label><select id="comp-precio-rec-sucursal" onchange="loadPrecioRecomendado()"></select></div>
+            <div id="comp-precio-rec" style="margin-top:12px;">—</div>
+          </div>
+        </div>
+        <div class="section" style="margin-top:0;">
+          <div class="section-head"><h2>Simular promoción</h2></div>
+          <div class="card">
+            <div class="form-row">
+              <div class="form-field"><label>Descuento (%)</label><input id="comp-descuento" type="number" value="10"></div>
+            </div>
+            <button class="btn btn-ghost" onclick="simularPromocionComp()">Simular</button>
+            <div id="comp-simulacion" style="margin-top:12px;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRIBUTARIA SUNAT -->
+    <div class="view" id="view-tributaria">
+      <div class="form-card">
+        <div class="section-head"><h2>Emitir documento SUNAT</h2></div>
+        <div class="form-row">
+          <div class="form-field"><label>Sucursal</label><select id="trib-sucursal"></select></div>
+          <div class="form-field"><label>Tipo</label>
+            <select id="trib-tipo">
+              <option value="FACTURA">Factura</option>
+              <option value="BOLETA">Boleta</option>
+              <option value="GUIA_REMISION">Guía de remisión</option>
+              <option value="NOTA_CREDITO">Nota de crédito</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Serie</label><input id="trib-serie" placeholder="F001"></div>
+          <div class="form-field"><label>Número</label><input id="trib-numero" placeholder="00001234"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Venta relacionada (opcional, ID)</label><input id="trib-venta" type="number"></div>
+          <div class="form-field"><label>Despacho relacionado (opcional, ID)</label><input id="trib-despacho" type="number"></div>
+        </div>
+        <div class="form-row single">
+          <div class="form-field"><label>Monto (opcional)</label><input id="trib-monto" type="number" step="any"></div>
+        </div>
+        <button class="btn btn-accent" onclick="emitirDocumentoTrib()">Emitir documento</button>
+        <div class="msg" id="trib-msg"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>Documentos emitidos</h2>
+          <div style="display:flex;gap:8px;">
+            <select id="trib-filtro-tipo" onchange="loadDocumentosTrib()">
+              <option value="">Todos los tipos</option>
+              <option value="FACTURA">Factura</option>
+              <option value="BOLETA">Boleta</option>
+              <option value="GUIA_REMISION">Guía de remisión</option>
+              <option value="NOTA_CREDITO">Nota de crédito</option>
+            </select>
+            <select id="trib-filtro-estado" onchange="loadDocumentosTrib()">
+              <option value="">Todos los estados</option>
+              <option value="EMITIDO">Emitido</option>
+              <option value="ANULADO">Anulado</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Tipo</th><th>Serie-Número</th><th>Monto</th><th>Estado</th><th>Acción</th></tr></thead>
+          <tbody id="trib-docs-body"></tbody>
+        </table></div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>Ventas sin documento SUNAT</h2></div>
+        <div class="table-card"><div class="table-scroll"><table>
+          <thead><tr><th>Producto</th><th>Sucursal</th><th>Cantidad</th><th>Total (S/)</th></tr></thead>
+          <tbody id="trib-sindoc-body"></tbody>
+        </table></div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h2>Reporte de mermas y desmedros (sustento SUNAT)</h2></div>
+        <div class="stat-row" id="trib-mermdesm-resumen"></div>
+        <div class="note" id="trib-desmedro-nota"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let API = "http://127.0.0.1:8000";
+let TOKEN = null;
+let CACHE = { productos: [], proveedores: [], sucursales: [] };
+
+const ESTADOS_OP = ["SOLICITADA","APROBADA","DOSIFICACION","PRODUCCION","HORNEADO","EMPAQUE","DESPACHO","RECEPCION","FACTURADO"];
+
+function money(n){ return "S/ " + Number(n||0).toFixed(2); }
+
+async function api(path, opts={}){
+  const headers = Object.assign({"Content-Type":"application/json"}, opts.headers||{});
+  if(TOKEN) headers["Authorization"] = "Bearer " + TOKEN;
+  const res = await fetch(API + path, Object.assign({}, opts, {headers}));
+  document.getElementById("api-dot").classList.toggle("off", !res.ok && res.status >= 500);
+  if(!res.ok){
+    let detail = res.statusText;
+    try{ const j = await res.json(); detail = j.detail || detail; }catch(e){}
+    throw new Error(detail);
+  }
+  if(res.status === 204) return null;
+  return res.json();
+}
+
+/* ---------- AUTH ---------- */
+async function doLogin(){
+  const user = document.getElementById("login-user").value.trim();
+  const pass = document.getElementById("login-pass").value;
+  API = document.getElementById("login-api").value.trim().replace(/\/$/,"");
+  const errEl = document.getElementById("login-error");
+  errEl.textContent = "";
+  try{
+    const data = await api("/api/auth/login", {method:"POST", body: JSON.stringify({username:user, password:pass})});
+    TOKEN = data.access_token;
+    const me = await api("/api/auth/me");
+    document.getElementById("side-user-name").textContent = me.nombre_completo;
+    document.getElementById("side-user-suc").textContent = "sucursal #" + (me.sucursal_id ?? "—");
+    document.getElementById("api-url-label").textContent = API.replace(/^https?:\/\//,"");
+    document.getElementById("login-screen").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    await bootstrap();
+  }catch(e){
+    errEl.textContent = "No se pudo iniciar sesión: " + e.message + " (¿está corriendo el backend en esa URL?)";
+  }
+}
+function doLogout(){
+  TOKEN = null;
+  document.getElementById("app").classList.add("hidden");
+  document.getElementById("login-screen").classList.remove("hidden");
+}
+
+/* ---------- NAV ---------- */
+const titles = {
+  dashboard: ["Dashboard","Resumen general de la operación"],
+  productos: ["Productos","Catálogo de insumos, semielaborados, terminados y mercadería"],
+  proveedores: ["Proveedores","Directorio de proveedores"],
+  recetas: ["Recetas","Versionamiento de recetas y costo estándar"],
+  compras: ["Compras","Solicitada → Aprobada → Recibida"],
+  produccion: ["Producción","SOLICITADA → APROBADA → DOSIFICACION → PRODUCCION → HORNEADO → EMPAQUE → DESPACHO → RECEPCION → FACTURADO"],
+  logistica: ["Despacho / Recepción","Trazabilidad de despacho (responsable, vehículo) y recepción en tienda (merma, aceptación)"],
+  mermas: ["Mermas","Bajas de stock valorizadas por costo FEFO"],
+  ventas: ["Ventas","Registro POS por sucursal"],
+  rentabilidad: ["Rentabilidad","Venta real vs. costo real de producción"],
+  ejecutivo: ["Dashboard Ejecutivo","KPIs, semáforos, ranking y forecast para gerencia"],
+  lean: ["Lean / Six Sigma / TOC","OEE, Cp/Cpk y cuello de botella sobre tiempos reales de producción"],
+  inteligencia: ["Centro de Inteligencia Empresarial","Preguntas de negocio resueltas con datos reales"],
+  reportes: ["Reportes","Hoja de dosificación en PDF y exportes Excel de producción/kardex"],
+  "lean-captura": ["Lean Captura","5S, Kaizen, SMED, Jidoka, Andon, Heijunka y VSM sobre datos reales de planta"],
+  spc: ["Six Sigma SPC","Carta de control I-MR, histograma y capacidad de proceso (Cp/Cpk)"],
+  competencia: ["Inteligencia Competitiva","Precios de competencia, elasticidad y precio recomendado"],
+  tributaria: ["Inteligencia Tributaria","Control documental SUNAT, ventas sin documento y sustento de mermas/desmedros"],
+};
+document.querySelectorAll(".navitem").forEach(el=>{
+  el.addEventListener("click", ()=> switchView(el.dataset.view));
+});
+function switchView(view){
+  document.querySelectorAll(".navitem").forEach(n=>n.classList.toggle("active", n.dataset.view===view));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id === "view-"+view));
+  document.getElementById("view-title").textContent = titles[view][0];
+  document.getElementById("view-sub").textContent = titles[view][1];
+  const loaders = {
+    dashboard: loadDashboard, productos: loadProductos, proveedores: loadProveedores,
+    recetas: loadRecetasView, compras: loadCompras, produccion: loadProduccion,
+    logistica: loadLogistica, mermas: loadMermas, ventas: loadVentas, rentabilidad: cargarRentabilidad,
+    ejecutivo: loadEjecutivo, lean: loadLean, inteligencia: loadInteligencia, reportes: loadReportes,
+    "lean-captura": loadLeanCaptura, spc: loadSpcView, competencia: loadCompetenciaView, tributaria: loadTributariaView
+  };
+  if(loaders[view]) loaders[view]();
+}
+
+document.querySelectorAll(".subtab").forEach(el=>{
+  el.addEventListener("click", ()=>{
+    const group = el.closest(".subtabs");
+    group.querySelectorAll(".subtab").forEach(s=>s.classList.toggle("active", s===el));
+    const container = group.parentElement;
+    container.querySelectorAll(".subview").forEach(v=>v.classList.toggle("active", v.id === "lc-sub-"+el.dataset.sub));
+    const loaders = {
+      "5s": loadLc5s, kaizen: loadLcKaizen, smed: loadLcSmed, jidoka: loadLcJidoka,
+      andon: loadLcAndon, heijunka: loadLcHeijunka, vsm: loadLcVsm
+    };
+    if(loaders[el.dataset.sub]) loaders[el.dataset.sub]();
+  });
+});
+
+/* ---------- BOOTSTRAP ---------- */
+async function bootstrap(){
+  const [sucursales, productos, proveedores] = await Promise.all([
+    api("/api/organizacion/sucursales"),
+    api("/api/productos"),
+    api("/api/productos/proveedores"),
+  ]);
+  CACHE.sucursales = sucursales;
+  CACHE.productos = productos;
+  CACHE.proveedores = proveedores;
+  fillSucursalSelects();
+  fillProductoSelects();
+  fillProveedorSelects();
+  agregarFilaIngrediente();
+  agregarFilaOC();
+  await loadDashboard();
+}
+
+function fillSucursalSelects(){
+  const opts = CACHE.sucursales.map(s=>`<option value="${s.id}">${s.nombre}</option>`).join("");
+  ["oc-sucursal","op-sucursal","merma-sucursal","venta-sucursal","rent-sucursal","dash-suc-select","rec-consulta-sucursal",
+   "lc5s-sucursal","lck-sucursal","lcsmed-sucursal","lcj-sucursal","lca-sucursal","lch-sucursal","lcv-sucursal",
+   "spc-sucursal","trib-sucursal"]
+    .forEach(id=>{ const el = document.getElementById(id); if(el) el.innerHTML = opts; });
+  const optsConTodas = `<option value="">Todas</option>` + opts;
+  ["comp-sucursal"].forEach(id=>{ const el = document.getElementById(id); if(el) el.innerHTML = optsConTodas; });
+  const el2 = document.getElementById("comp-precio-rec-sucursal"); if(el2) el2.innerHTML = opts;
+}
+function fillProductoSelects(){
+  const opts = CACHE.productos.map(p=>`<option value="${p.id}">${p.nombre} · ${p.codigo}</option>`).join("");
+  const terminados = CACHE.productos.filter(p=>p.tipo==="TERMINADO"||p.tipo==="SEMIELABORADO")
+    .map(p=>`<option value="${p.id}">${p.nombre}</option>`).join("");
+  ["merma-producto","venta-producto"].forEach(id=>{ document.getElementById(id).innerHTML = opts; });
+  ["rec-producto","rec-consulta-producto","op-producto","lch-producto","comp-producto-reg","comp-producto-consulta"]
+    .forEach(id=>{ const el = document.getElementById(id); if(el) el.innerHTML = terminados; });
+  const spcProd = document.getElementById("spc-producto");
+  if(spcProd) spcProd.innerHTML = `<option value="">—</option>` + terminados;
+}
+function fillProveedorSelects(){
+  document.getElementById("oc-proveedor").innerHTML = CACHE.proveedores.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join("");
+}
+function productoNombre(id){ const p = CACHE.productos.find(x=>x.id==id); return p ? p.nombre : ("#"+id); }
+function sucursalNombre(id){ const s = CACHE.sucursales.find(x=>x.id==id); return s ? s.nombre : ("#"+id); }
+
+/* ---------- DASHBOARD ---------- */
+async function loadDashboard(){
+  try{
+    const [ops, mermas] = await Promise.all([ api("/api/produccion"), api("/api/consultas/mermas") ]);
+    document.getElementById("kpi-sucursales").textContent = CACHE.sucursales.length;
+    document.getElementById("kpi-productos").textContent = CACHE.productos.length;
+    document.getElementById("kpi-ops").textContent = ops.filter(o=>o.estado!=="FACTURADO").length;
+    const totalMermas = mermas.reduce((a,m)=>a+m.costo_valorizado,0);
+    document.getElementById("kpi-mermas").textContent = money(totalMermas);
+
+    const opsBody = document.getElementById("dash-ops-body");
+    opsBody.innerHTML = ops.slice(0,6).map(o=>`
+      <tr><td class="mono">${o.codigo}</td><td>${productoNombre(o.producto_id)}</td>
+      <td>${estadoBadge(o.estado)}</td><td>${o.cantidad_solicitada}</td></tr>`).join("")
+      || `<tr class="empty-row"><td colspan="4">Aún no hay órdenes de producción</td></tr>`;
+
+    await loadDashboardStock();
+  }catch(e){ console.error(e); }
+}
+async function loadDashboardStock(){
+  const sucId = document.getElementById("dash-suc-select").value || CACHE.sucursales[0]?.id;
+  if(!sucId) return;
+  const stock = await api(`/api/consultas/stock/${sucId}`);
+  document.getElementById("dash-stock-body").innerHTML = stock.map(s=>`
+    <tr><td>${s.producto_nombre}</td><td>${s.cantidad_disponible.toFixed(2)} ${s.unidad}</td><td>${money(s.valor_total)}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="3">Sin stock registrado en esta sucursal</td></tr>`;
+}
+
+function estadoBadge(estado){
+  const map = {
+    SOLICITADA:"neutral", APROBADA:"accent", DOSIFICACION:"accent", PRODUCCION:"accent",
+    HORNEADO:"warn", EMPAQUE:"warn", DESPACHO:"warn", RECEPCION:"warn", FACTURADO:"ok",
+    SOLICITADA_OC:"neutral", APROBADA_OC:"accent", RECIBIDA:"ok", ANULADA:"danger",
+    ABC_A:"ok", ABC_B:"warn", ABC_C:"neutral",
+    XYZ_X:"ok", XYZ_Y:"warn", XYZ_Z:"danger",
+    PROGRAMADO:"neutral", EN_RUTA:"warn", ENTREGADO:"ok",
+  };
+  return `<span class="badge ${map[estado]||'neutral'}">${(estado+"").replace('ABC_','').replace('XYZ_','')}</span>`;
+}
+
+/* ---------- PRODUCTOS ---------- */
+async function loadProductos(){
+  const productos = await api("/api/productos");
+  CACHE.productos = productos;
+  fillProductoSelects();
+  document.getElementById("productos-body").innerHTML = productos.map(p=>`
+    <tr><td class="mono">${p.id}</td><td class="mono">${p.codigo}</td><td>${p.nombre}</td><td>${p.unidad}</td><td>${estadoBadge(p.tipo)}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="5">Sin productos</td></tr>`;
+}
+async function crearProducto(){
+  const msg = document.getElementById("prod-msg"); msg.textContent = ""; msg.className = "msg";
+  try{
+    await api("/api/productos", {method:"POST", body: JSON.stringify({
+      codigo: document.getElementById("prod-codigo").value.trim(),
+      nombre: document.getElementById("prod-nombre").value.trim(),
+      unidad: document.getElementById("prod-unidad").value.trim() || "unidad",
+      tipo: document.getElementById("prod-tipo").value,
+    })});
+    msg.textContent = "Producto creado."; msg.className = "msg ok";
+    document.getElementById("prod-codigo").value = ""; document.getElementById("prod-nombre").value = "";
+    await loadProductos();
+  }catch(e){ msg.textContent = e.message; msg.className = "msg err"; }
+}
+
+/* ---------- PROVEEDORES ---------- */
+async function loadProveedores(){
+  const proveedores = await api("/api/productos/proveedores");
+  CACHE.proveedores = proveedores;
+  fillProveedorSelects();
+  document.getElementById("proveedores-body").innerHTML = proveedores.map(p=>`
+    <tr><td class="mono">${p.id}</td><td>${p.nombre}</td><td class="mono">${p.ruc||"—"}</td><td>${p.contacto||"—"}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="4">Sin proveedores</td></tr>`;
+}
+async function crearProveedor(){
+  const msg = document.getElementById("prov-msg"); msg.textContent = ""; msg.className = "msg";
+  try{
+    await api("/api/productos/proveedores", {method:"POST", body: JSON.stringify({
+      nombre: document.getElementById("prov-nombre").value.trim(),
+      ruc: document.getElementById("prov-ruc").value.trim(),
+      contacto: document.getElementById("prov-contacto").value.trim(),
+    })});
+    msg.textContent = "Proveedor creado."; msg.className = "msg ok";
+    document.getElementById("prov-nombre").value = ""; document.getElementById("prov-ruc").value = ""; document.getElementById("prov-contacto").value = "";
+    await loadProveedores();
+  }catch(e){ msg.textContent = e.message; msg.className = "msg err"; }
+}
+
+/* ---------- RECETAS ---------- */
+function agregarFilaIngrediente(){
+  const insumos = CACHE.productos.filter(p=>p.tipo==="INSUMO"||p.tipo==="SEMIELABORADO");
+  const row = document.createElement("div");
+  row.className = "ingrediente-row";
+  row.innerHTML = `
+    <select class="ing-insumo">${insumos.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join("")}</select>
+    <input class="ing-cantidad" type="number" step="0.001" placeholder="cant./unidad" value="0.1">
+    <button onclick="this.parentElement.remove()">×</button>`;
+  document.getElementById("rec-ingredientes").appendChild(row);
+}
+async function crearReceta(){
+  const msg = document.getElementById("rec-msg"); msg.textContent = ""; msg.className = "msg";
+  const ingredientes = Array.from(document.querySelectorAll("#rec-ingredientes .ingrediente-row")).map(r=>({
+    insumo_id: parseInt(r.querySelector(".ing-insumo").value),
+    cantidad_por_unidad: parseFloat(r.querySelector(".ing-cantidad").value),
+  }));
+  try{
+    await api("/api/recetas", {method:"POST", body: JSON.stringify({
+      producto_id: parseInt(document.getElementById("rec-producto").value),
+      rendimiento_unidades: parseFloat(document.getElementById("rec-rendimiento").value),
+      merma_estimada_pct: parseFloat(document.getElementById("rec-merma").value),
+      ingredientes,
+    })});
+    msg.textContent = "Receta guardada como nueva versión activa."; msg.className = "msg ok";
+  }catch(e){ msg.textContent = e.message; msg.className = "msg err"; }
+}
+function loadRecetasView(){ /* selects ya poblados en bootstrap */ }
+async function consultarReceta(){
+  const el = document.getElementById("rec-consulta-result");
+  el.innerHTML = "Consultando…";
+  const productoId = document.getElementById("rec-consulta-producto").value;
+  const sucursalId = document.getElementById("rec-consulta-sucursal").value;
+  try{
+    const receta = await api(`/api/recetas/producto/${productoId}/activa`);
+    let costoHtml = "";
+    try{
+      const costo = await api(`/api/recetas/producto/${productoId}/costo-estandar?almacen_id=${sucursalId}`);
+      costoHtml = `<div class="badge accent" style="margin-top:8px;">Costo estándar: ${money(costo.costo_unitario)} / unidad</div>`;
+    }catch(e){ costoHtml = `<div class="msg err">Costo no disponible: ${e.message}</div>`; }
+    el.innerHTML = `
+      <div><b>Versión ${receta.version}</b> · rendimiento ${receta.rendimiento_unidades} u · merma ${(receta.merma_estimada_pct*100).toFixed(1)}%</div>
+      <ul style="padding-left:18px;margin:8px 0;">${receta.ingredientes.map(i=>`<li>${productoNombre(i.insumo_id)} — ${i.cantidad_por_unidad} / unidad</li>`).join("")}</ul>
+      ${costoHtml}`;
+  }catch(e){ el.innerHTML = `<span class="msg err">${e.message}</span>`; }
+}
+
+/* ---------- COMPRAS ---------- */
+function agregarFilaOC(){
+  const row = document.createElement("div");
+  row.className = "ingrediente-row";
+  row.innerHTML = `
+    <select class="oc-item-producto">${CACHE.productos.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join("")}</select>
+    <input class="oc-item-cant" type="number" step="0.01" placeholder="cant." value="10">
+    <input class="oc-item-costo" type="number" step="0.01" placeholder="costo u." value="1" style="width:80px;">
+    <button onclick="this.parentElement.remove()">×</button>`;
+  row.style.gridTemplateColumns = "1fr 80px 80px 30px";
+  document.getElementById("oc-items").appendChild(row);
+}
+async function crearOC(){
+  const msg = document.getElementById("oc-msg"); msg.textContent = ""; msg.className = "msg";
+  const items = Array.from(document.querySelectorAll("#oc-items .ingrediente-row")).map(r=>({
+    producto_id: parseInt(r.querySelector(".oc-item-producto").value),
+    cantidad: parseFloat(r.querySelector(".oc-item-cant").value),
+    costo_unitario: parseFloat(r.querySelector(".oc-item-costo").value),
+  }));
+  try{
+    await api("/api/compras", {method:"POST", body: JSON.stringify({
+      proveedor_id: parseInt(document.getElementById("oc-proveedor").value),
+      sucursal_id: parseInt(document.getElementById("oc-sucursal").value),
+      items,
+    })});
+    msg.textContent = "Orden de compra creada."; msg.className = "msg ok";
+    await loadCompras();
+  }catch(e){ msg.textContent = e.message; msg.className = "msg err"; }
+}
+async function loadCompras(){
+  const ocs = await api("/api/compras");
+  document.getElementById("compras-body").innerHTML = ocs.map(o=>`
+    <tr><td class="mono">${o.codigo}</td><td>${(CACHE.proveedores.find(p=>p.id===o.proveedor_id)||{}).nombre || o.proveedor_id}</td>
+    <td>${estadoBadge(o.estado)}</td>
+    <td>
+      ${o.estado==="SOLICITADA" ? `<button class="btn btn-ghost btn-sm" onclick="aprobarOC(${o.id})">Aprobar</button>` : ""}
+      ${o.estado==="APROBADA" ? `<button class="btn btn-ghost btn-sm" onclick="recibirOC(${o.id})">Recibir</button>` : ""}
+    </td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="4">Sin órdenes de compra</td></tr>`;
+}
+async function aprobarOC(id){ try{ await api(`/api/compras/${id}/aprobar`, {method:"POST"}); await loadCompras(); }catch(e){ alert(e.message); } }
+async function recibirOC(id){ try{ await api(`/api/compras/${id}/recibir`, {method:"POST"}); await loadCompras(); await loadDashboardStock(); }catch(e){ alert(e.message); } }
+
+/* ---------- PRODUCCIÓN ---------- */
+async function crearOP(){
+  const msg = document.getElementById("op-msg"); msg.textContent = ""; msg.className = "msg";
+  try{
+    await api("/api/produccion", {method:"POST", body: JSON.stringify({
+      sucursal_id: parseInt(document.getElementById("op-sucursal").value),
+      producto_id: parseInt(document.getElementById("op-producto").value),
+      cantidad_solicitada: parseFloat(document.getElementById("op-cantidad").value),
+    })});
+    msg.textContent = "Orden de producción generada."; msg.className = "msg ok";
+    await loadProduccion();
+  }catch(e){ msg.textContent = e.message; msg.className = "msg err"; }
+}
+async function loadProduccion(){
+  const [ops, despachos] = await Promise.all([api("/api/produccion"), api("/api/logistica/despachos")]);
+  CACHE.despachosPorOp = {};
+  despachos.forEach(d => { CACHE.despachosPorOp[d.op_id] = d; });
+  const list = document.getElementById("ops-list");
+  list.innerHTML = ops.map(op => opTicketHtml(op)).join("") || `<div class="table-card" style="padding:22px;text-align:center;color:var(--ink-faint);font-style:italic;">Sin órdenes de producción</div>`;
+}
+function opTicketHtml(op){
+  const idx = ESTADOS_OP.indexOf(op.estado);
+  const siguiente = ESTADOS_OP[idx+1];
+  const steps = ESTADOS_OP.map((e,i)=>{
+    const cls = i < idx ? "done" : (i === idx ? "current" : "");
+    return `<div class="op-step ${cls}"><span class="n">${i+1}</span>${e}</div>`;
+  }).join("");
+  const necesitaCantidad = siguiente === "EMPAQUE";
+  let accion;
+  if(siguiente === "DESPACHO"){
+    accion = `
+    <div class="op-actions">
+      <input type="text" id="op-despacho-resp-${op.id}" placeholder="responsable">
+      <input type="text" id="op-despacho-veh-${op.id}" placeholder="vehículo (opcional)">
+      <button class="btn btn-accent btn-sm" onclick="crearDespachoOP(${op.id})">Despachar</button>
+    </div>`;
+  } else if(siguiente === "RECEPCION"){
+    const despacho = (CACHE.despachosPorOp||{})[op.id];
+    accion = despacho ? `
+    <div class="op-actions">
+      <input type="number" id="op-recep-cant-${op.id}" placeholder="cant. recepcionada" value="${op.cantidad_producida ?? op.cantidad_solicitada}">
+      <input type="number" id="op-recep-merma-${op.id}" placeholder="merma transporte" value="0">
+      <button class="btn btn-accent btn-sm" onclick="crearRecepcionOP(${despacho.id}, ${op.id})">Recepcionar</button>
+    </div>` : `<div class="op-actions"><span class="badge warn">Despacho no encontrado</span></div>`;
+  } else if(siguiente){
+    accion = `
+    <div class="op-actions">
+      ${necesitaCantidad ? `<input type="number" id="op-cant-prod-${op.id}" placeholder="cant. producida" value="${op.cantidad_solicitada}">` : ""}
+      <button class="btn btn-accent btn-sm" onclick="avanzarOP(${op.id}, '${siguiente}', ${necesitaCantidad})">Avanzar a ${siguiente}</button>
+    </div>`;
+  } else {
+    accion = `<div class="op-actions"><span class="badge ok">Ciclo completo</span></div>`;
+  }
+  return `
+    <div class="op-ticket">
+      <div class="op-ticket-head">
+        <div><div class="op-code">${op.codigo}</div><div class="op-meta">${productoNombre(op.producto_id)} · ${sucursalNombre(op.sucursal_id)} · cant. solicitada ${op.cantidad_solicitada}</div></div>
+        <div style="text-align:right;">
+          ${estadoBadge(op.estado)}
+          ${op.costo_real_total ? `<div class="op-meta" style="margin-top:5px;">Costo real: ${money(op.costo_real_total)}</div>` : (op.costo_insumos_real ? `<div class="op-meta" style="margin-top:5px;">Costo insumos: ${money(op.costo_insumos_real)}</div>` : "")}
+          <div style="margin-top:6px;"><a href="#" onclick="descargarReporte('/api/reportes/dosificacion/${op.id}.pdf','dosificacion_${op.codigo}.pdf');return false;" style="font-size:11px;">Hoja de dosificación (PDF)</a></div>
+        </div>
+      </div>
+      <div class="op-steps">${steps}</div>
+      ${accion}
+    </div>`;
+}
+async function avanzarOP(id, nuevoEstado, necesitaCantidad){
+  try{
+    const body = {nuevo_estado: nuevoEstado};
+    if(necesitaCantidad){
+      body.cantidad_producida = parseFloat(document.getElementById(`op-cant-prod-${id}`).value);
+    }
+    await api(`/api/produccion/${id}/avanzar`, {method:"POST", body: JSON.stringify(body)});
+    await loadProduccion();
+    await loadDashboardStock();
+  }catch(e){ alert(e.message); }
+}
+
+/* ---------- DESPACHO / RECEPCIÓN ---------- */
+async function crearDespachoOP(opId){
+  try{
+    const responsable = document.getElementById(`op-despacho-resp-${opId}`).value.trim();
+    const vehiculo = document.getElementById(`op-despacho-veh-${opId}`).value.trim();
+    if(!responsable){ alert("El responsable del despacho es obligatorio."); return; }
+    await api("/api/logistica/despachos", {method:"POST", body: JSON.stringify({op_id: opId, responsable, vehiculo})});
+    await loadProduccion();
+  }catch(e){ alert(e.message); }
+}
+async function crearRecepcionOP(despachoId, opId){
+  try{
+    const cantidad_recepcionada = parseFloat(document.getElementById(`op-recep-cant-${opId}`).value);
+    const cantidad_merma = parseFloat(document.getElementById(`op-recep-merma-${opId}`).value || "0");
+    await api("/api/logistica/recepciones", {method:"POST", body: JSON.stringify({
+      despacho_id: despachoId, cantidad_recepcionada, cantidad_merma, aceptado: true,
+    })});
+    await loadProduccion();
+    await loadDashboardStock();
+  }catch(e){ alert(e.message); }
+}
+async function loadLogistica(){
+  const despachos = await api("/api/logistica/despachos");
+  document.getElementById("logistica-body").innerHTML = despachos.map(d=>{
+    return `<tr>
+      <td class="mono">OP #${d.op_id}</td>
+      <td>${sucursalNombre(d.sucursal_id)}</td>
+      <td>${d.responsable}</td>
+      <td>${d.vehiculo || "—"}</td>
+      <td>${estadoBadge(d.estado)}</td>
+      <td>${d.estado==="ENTREGADO" ? "Recepcionado" : "Pendiente (ver ficha en Producción)"}</td>
+    </tr>`;
+  }).join("") || `<tr class="empty-row"><td colspan="6">Sin despachos registrados</td></tr>`;
+}
+
+/* ---------- REPORTES ---------- */
+async function loadReportes(){
+  const ops = await api("/api/produccion");
+  document.getElementById("rep-op").innerHTML = ops.map(op=>`<option value="${op.id}">${op.codigo}</option>`).join("")
+    || `<option value="">Sin órdenes de producción</option>`;
+}
+async function descargarDosificacion(){
+  const opId = document.getElementById("rep-op").value;
+  if(!opId) return;
+  await descargarReporte(`/api/reportes/dosificacion/${opId}.pdf`, `dosificacion_op_${opId}.pdf`);
+}
+async function descargarReporte(path, filename){
+  try{
+    const headers = {};
+    if(TOKEN) headers["Authorization"] = "Bearer " + TOKEN;
+    const res = await fetch(API + path, {headers});
+    if(!res.ok){ let d = res.statusText; try{ const j = await res.json(); d = j.detail||d; }catch(e){} throw new Error(d); }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+  }catch(e){ alert("No se pudo descargar el reporte: " + e.message); }
+}
+
+/* ---------- DASHBOARD EJECUTIVO ---------- */
+async function loadEjecutivo(){
+  try{
+    const [resumen, pareto, xyz] = await Promise.all([
+      api("/api/dashboard/resumen"),
+      api("/api/dashboard/pareto-productos"),
+      api("/api/dashboard/xyz-productos"),
+    ]);
+
+    document.getElementById("ej-ventas-hoy").textContent = money(resumen.ventas.hoy);
+    document.getElementById("ej-ventas-hist").textContent = "histórico " + money(resumen.ventas.historico);
+
+    document.getElementById("ej-utilidad").textContent = money(resumen.utilidad.ebitda_aproximado);
+    document.getElementById("ej-margen").textContent = "margen " + resumen.utilidad.margen_pct.toFixed(1) + "%";
+
+    document.getElementById("ej-pedidos").textContent = resumen.produccion.pedidos_pendientes;
+    document.getElementById("ej-unidades").textContent = "unidades producidas hoy " + resumen.produccion.unidades_producidas_hoy.toFixed(1);
+
+    document.getElementById("ej-mermas-hoy").textContent = money(resumen.mermas.valor_hoy);
+    document.getElementById("ej-mermas-total").textContent = "histórico " + money(resumen.mermas.valor_total);
+
+    document.getElementById("ej-semaforos").innerHTML = resumen.semaforos_tienda.map(s=>`
+      <div class="semaforo-card ${s.color}">
+        <div class="suc">${s.sucursal_nombre}</div>
+        <div class="val">${money(s.venta_total)} venta</div>
+        <div class="val">${money(s.utilidad_total)} utilidad · ${s.margen_pct.toFixed(1)}%</div>
+      </div>`).join("") || `<div class="note">Sin sucursales</div>`;
+
+    document.getElementById("ej-ranking-tiendas").innerHTML = resumen.ranking_tiendas.map(t=>`
+      <tr><td>${t.sucursal_nombre}</td><td>${money(t.venta_total)}</td><td>${money(t.utilidad_total)}</td><td>${t.margen_pct.toFixed(1)}%</td></tr>
+    `).join("") || `<tr class="empty-row"><td colspan="4">Sin datos</td></tr>`;
+
+    document.getElementById("ej-ranking-productos").innerHTML = resumen.ranking_productos.map(p=>`
+      <tr><td>${p.producto_nombre}</td><td>${money(p.venta_total)}</td><td>${money(p.utilidad_total)}</td></tr>
+    `).join("") || `<tr class="empty-row"><td colspan="3">Sin datos</td></tr>`;
+
+    document.getElementById("ej-forecast").textContent = money(resumen.forecast.proxima_semana);
+    document.getElementById("ej-forecast-nota").textContent =
+      `proyección lineal: ${money(resumen.forecast.promedio_diario_7d)}/día promedio (últimos 7 días) × 7`;
+
+    document.getElementById("ej-pareto").innerHTML = pareto.map(p=>`
+      <tr><td>${p.producto_nombre}</td><td>${money(p.venta_total)}</td><td>${p.pct_acumulado.toFixed(1)}%</td>
+      <td>${estadoBadge('ABC_'+p.clase_abc)}</td></tr>
+    `).join("") || `<tr class="empty-row"><td colspan="4">Sin ventas registradas</td></tr>`;
+
+    document.getElementById("ej-xyz").innerHTML = xyz.map(x=>`
+      <tr><td>${x.producto_nombre}</td><td>${x.demanda_promedio_diaria.toFixed(2)}</td>
+      <td>${x.coeficiente_variacion!=null ? (x.coeficiente_variacion*100).toFixed(1)+"%" : "—"}</td>
+      <td>${estadoBadge('XYZ_'+x.clase_xyz)}</td></tr>
+    `).join("") || `<tr class="empty-row"><td colspan="4">Sin ventas registradas</td></tr>`;
+  }catch(e){ console.error(e); }
+}
+
+/* ---------- LEAN / SIX SIGMA / TOC ---------- */
+async function loadLean(){
+  await Promise.all([loadLeanKanban(), loadLeanOee(), loadLeanCapacidad(), loadLeanCuello()]);
+}
+async function loadLeanKanban(){
+  const data = await api("/api/lean/kanban");
+  document.getElementById("lean-kanban").innerHTML = data.columnas.map(c=>`
+    <div class="kanban-col"><div class="lbl">${c.estado}</div><div class="n">${c.cantidad}</div></div>
+  `).join("");
+}
+async function loadLeanOee(){
+  const data = await api("/api/lean/oee");
+  if(data.oee_pct === null){
+    document.getElementById("lean-oee").textContent = "—";
+    document.getElementById("lean-oee-detalle").innerHTML = `<div class="note">${data.mensaje}</div>`;
+    return;
+  }
+  document.getElementById("lean-oee").textContent = data.oee_pct.toFixed(1) + "%";
+  const barra = (label, pct) => `
+    <div style="margin-bottom:8px;">
+      <div class="note" style="display:flex;justify-content:space-between;"><span>${label}</span><span>${pct.toFixed(1)}%</span></div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>
+    </div>`;
+  document.getElementById("lean-oee-detalle").innerHTML =
+    barra("Disponibilidad", data.disponibilidad_pct) +
+    barra("Rendimiento", data.rendimiento_pct) +
+    barra("Calidad", data.calidad_pct) +
+    `<div class="note" style="margin-top:6px;">sobre ${data.ops_analizadas} OP con producción registrada</div>`;
+}
+async function loadLeanCapacidad(){
+  const tolPct = parseFloat(document.getElementById("lean-tolerancia").value || 10) / 100;
+  const data = await api(`/api/lean/capacidad-proceso?tolerancia_pct=${tolPct}`);
+  const body = document.getElementById("lean-cpk-body");
+  if(data.cp === null){
+    body.innerHTML = `<div class="note">${data.mensaje}</div>`;
+    return;
+  }
+  body.innerHTML = `
+    <div class="grid cols-2" style="gap:10px;">
+      <div><div class="note">Cp</div><div class="big" style="font-size:22px;">${data.cp.toFixed(2)}</div></div>
+      <div><div class="note">Cpk</div><div class="big" style="font-size:22px;">${data.cpk.toFixed(2)}</div></div>
+    </div>
+    <div class="note" style="margin-top:10px;">Media de rendimiento: ${data.media_rendimiento_pct.toFixed(1)}% · Desv. estándar: ${data.desviacion_estandar_pct.toFixed(1)}%</div>
+    <div style="margin-top:8px;font-weight:600;font-size:13px;">${data.interpretacion}</div>`;
+}
+async function loadLeanCuello(){
+  const data = await api("/api/lean/cuello-de-botella");
+  document.getElementById("lean-cuello-body").innerHTML = data.etapas.map((e,i)=>`
+    <tr ${i===0 ? 'style="font-weight:700;"' : ''}><td>${e.estado}${i===0 ? ' <span class="badge danger">Cuello de botella</span>' : ''}</td>
+    <td>${e.tiempo_promedio_horas.toFixed(2)}</td><td>${e.muestras}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="3">Sin historial de producción todavía</td></tr>`;
+}
+
+/* ---------- CENTRO DE INTELIGENCIA EMPRESARIAL ---------- */
+let IA_PREGUNTAS = [];
+async function loadInteligencia(){
+  if(IA_PREGUNTAS.length === 0){
+    IA_PREGUNTAS = await api("/api/inteligencia/preguntas");
+    document.getElementById("ia-questions").innerHTML = IA_PREGUNTAS.map(p=>
+      `<button class="ia-q-btn" onclick="seleccionarPreguntaIA('${p.codigo}')">${p.texto}</button>`
+    ).join("");
+  }
+}
+function seleccionarPreguntaIA(codigo){
+  const pregunta = IA_PREGUNTAS.find(p=>p.codigo===codigo);
+  const paramsEl = document.getElementById("ia-params");
+  paramsEl.innerHTML = "";
+  paramsEl.dataset.codigo = codigo;
+
+  if(!pregunta.requiere){
+    ejecutarPreguntaIA(codigo, {});
+    return;
+  }
+  if(pregunta.requiere.includes("insumo_id")){
+    const insumos = CACHE.productos.filter(p=>p.tipo==="INSUMO");
+    paramsEl.innerHTML += `<div class="form-field"><label>Insumo</label>
+      <select id="ia-insumo-id">${insumos.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join("")}</select></div>`;
+  }
+  if(pregunta.requiere.includes("producto_id")){
+    const terminados = CACHE.productos.filter(p=>p.tipo==="TERMINADO"||p.tipo==="SEMIELABORADO");
+    paramsEl.innerHTML += `<div class="form-field"><label>Producto</label>
+      <select id="ia-producto-id">${terminados.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join("")}</select></div>`;
+  }
+  if(pregunta.requiere.includes("porcentaje")){
+    paramsEl.innerHTML += `<div class="form-field"><label>Porcentaje (%)</label>
+      <input id="ia-porcentaje" type="number" value="2" step="0.5"></div>`;
+  }
+  paramsEl.innerHTML += `<button class="btn btn-accent" style="height:38px;" onclick="ejecutarPreguntaIAConParams('${codigo}')">Preguntar</button>`;
+}
+function ejecutarPreguntaIAConParams(codigo){
+  const params = {};
+  const insumoEl = document.getElementById("ia-insumo-id");
+  const productoEl = document.getElementById("ia-producto-id");
+  const porcentajeEl = document.getElementById("ia-porcentaje");
+  if(insumoEl) params.insumo_id = parseInt(insumoEl.value);
+  if(productoEl) params.producto_id = parseInt(productoEl.value);
+  if(porcentajeEl) params.porcentaje = parseFloat(porcentajeEl.value);
+  ejecutarPreguntaIA(codigo, params);
+}
+async function ejecutarPreguntaIA(codigo, params){
+  const pregunta = IA_PREGUNTAS.find(p=>p.codigo===codigo);
+  const wrap = document.getElementById("ia-answer-wrap");
+  wrap.innerHTML = `<div class="ia-answer"><div class="q">${pregunta.texto}</div><div class="a">Calculando…</div></div>`;
+  try{
+    const data = await api("/api/inteligencia/preguntar", {method:"POST", body: JSON.stringify(Object.assign({codigo}, params))});
+    let detalleHtml = "";
+    if(Array.isArray(data.detalle) && data.detalle.length){
+      const claves = Object.keys(data.detalle[0]);
+      detalleHtml = `<div class="table-card" style="margin-top:14px;"><div class="table-scroll"><table>
+        <thead><tr>${claves.map(k=>`<th>${k}</th>`).join("")}</tr></thead>
+        <tbody>${data.detalle.map(fila=>`<tr>${claves.map(k=>`<td>${fila[k]}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table></div></div>`;
+    }
+    wrap.innerHTML = `<div class="ia-answer"><div class="q">${pregunta.texto}</div><div class="a">${data.respuesta}</div>${detalleHtml}</div>`;
+  }catch(e){
+    wrap.innerHTML = `<div class="ia-answer"><div class="q">${pregunta.texto}</div><div class="a" style="color:var(--danger);">${e.message}</div></div>`;
+  }
+}
+
+
+/* ---------- MERMAS ---------- */
+async function crearMerma(){
+  const msg = document.getElementById("merma-msg"); msg.textContent = ""; msg.className = "msg";
+  try{
+    await api("/api/mermas", {method:"POST", body: JSON.stringify({
+      producto_id: parseInt(document.getElementById("merma-producto").value),
+      sucursal_id: parseInt(document.getElementById("merma-sucursal").value),
+      cantidad: parseFloat(document.getElementById("merma-cantidad").value),
+      motivo: document.getElementById("merma-motivo").value.trim(),
+    })});
+    msg.textContent = "Merma registrada."; msg.className = "msg ok";
+    await loadMermas();
+  }catch(e){ msg.textContent = e.message; msg.className = "msg err"; }
+}
+async function loadMermas(){
+  const mermas = await api("/api/consultas/mermas");
+  document.getElementById("mermas-body").innerHTML = mermas.map(m=>`
+    <tr><td>${productoNombre(m.producto_id)}</td><td>${m.cantidad}</td><td>${m.motivo||"—"}</td><td>${money(m.costo_valorizado)}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="4">Sin mermas registradas</td></tr>`;
+}
+
+/* ---------- VENTAS ---------- */
+async function crearVenta(){
+  const msg = document.getElementById("venta-msg"); msg.textContent = ""; msg.className = "msg";
+  try{
+    await api("/api/ventas", {method:"POST", body: JSON.stringify({
+      sucursal_id: parseInt(document.getElementById("venta-sucursal").value),
+      producto_id: parseInt(document.getElementById("venta-producto").value),
+      cantidad_vendida: parseFloat(document.getElementById("venta-cantidad").value),
+      total_venta: parseFloat(document.getElementById("venta-total").value),
+    })});
+    msg.textContent = "Venta registrada."; msg.className = "msg ok";
+    await loadVentas();
+  }catch(e){ msg.textContent = e.message; msg.className = "msg err"; }
+}
+async function loadVentas(){
+  const ventas = await api("/api/ventas");
+  document.getElementById("ventas-body").innerHTML = ventas.map(v=>`
+    <tr><td>${productoNombre(v.producto_id)}</td><td>${sucursalNombre(v.sucursal_id)}</td><td>${v.cantidad_vendida}</td><td>${money(v.total_venta)}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="4">Sin ventas registradas</td></tr>`;
+}
+
+/* ---------- RENTABILIDAD ---------- */
+async function cargarRentabilidad(){
+  const sucId = document.getElementById("rent-sucursal").value || CACHE.sucursales[0]?.id;
+  if(!sucId) return;
+  const data = await api(`/api/ventas/rentabilidad-por-tienda?sucursal_id=${sucId}`);
+  const map = {SIN_VENTAS:"neutral", PERDIDA_REAL:"danger", BAJO_OBJETIVO:"warn", CUMPLE_OBJETIVO:"ok"};
+  document.getElementById("rentabilidad-body").innerHTML = data.map(r=>`
+    <tr><td>${productoNombre(r.producto_id)}</td><td>${r.cantidad_vendida}</td><td>${money(r.total_venta)}</td>
+    <td>${money(r.costo_total_estimado)}</td><td>${money(r.utilidad_real)}</td>
+    <td>${r.margen_real_pct.toFixed(1)}%</td><td>${r.margen_objetivo_pct.toFixed(1)}%</td>
+    <td><span class="badge ${map[r.estado]||'neutral'}">${r.estado.replace(/_/g," ")}</span></td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="8">Sin ventas para esta sucursal aún</td></tr>`;
+}
+
+/* =======================================================================
+   LEAN CAPTURA (5S / KAIZEN / SMED / JIDOKA / ANDON / HEIJUNKA / VSM)
+   ======================================================================= */
+async function loadLeanCaptura(){
+  await loadLc5s();
+}
+
+/* ---- 5S ---- */
+async function crear5S(){
+  const msg = document.getElementById("lc5s-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/lean-captura/5s", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("lc5s-sucursal").value),
+      area: document.getElementById("lc5s-area").value,
+      seiri: Number(document.getElementById("lc5s-seiri").value),
+      seiton: Number(document.getElementById("lc5s-seiton").value),
+      seiso: Number(document.getElementById("lc5s-seiso").value),
+      seiketsu: Number(document.getElementById("lc5s-seiketsu").value),
+      shitsuke: Number(document.getElementById("lc5s-shitsuke").value),
+      observaciones: document.getElementById("lc5s-observaciones").value,
+      auditor: document.getElementById("lc5s-auditor").value,
+    })});
+    msg.textContent = "Auditoría registrada."; msg.className="msg ok";
+    document.getElementById("lc5s-area").value = "";
+    await loadLc5s();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadLc5s(){
+  const data = await api("/api/lean-captura/5s/resumen");
+  document.getElementById("lc5s-promedio").textContent = data.promedio_general_pct!=null ? data.promedio_general_pct.toFixed(1)+"%" : "—";
+  document.getElementById("lc5s-body").innerHTML = data.areas.map(a=>`
+    <tr><td>${a.area}</td><td><b>${a.puntaje_pct.toFixed(1)}%</b></td>
+    <td>${a.detalle.seiri}</td><td>${a.detalle.seiton}</td><td>${a.detalle.seiso}</td>
+    <td>${a.detalle.seiketsu}</td><td>${a.detalle.shitsuke}</td>
+    <td>${a.fecha ? new Date(a.fecha).toLocaleDateString() : "—"}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="8">Sin auditorías registradas</td></tr>`;
+}
+
+/* ---- KAIZEN ---- */
+const ESTADOS_KAIZEN = ["PROPUESTA","EN_CURSO","IMPLEMENTADA","DESCARTADA"];
+async function crearKaizenLC(){
+  const msg = document.getElementById("lck-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/lean-captura/kaizen", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("lck-sucursal").value),
+      area: document.getElementById("lck-area").value,
+      titulo: document.getElementById("lck-titulo").value,
+      descripcion: document.getElementById("lck-descripcion").value,
+      responsable: document.getElementById("lck-responsable").value,
+      ahorro_estimado: document.getElementById("lck-ahorro").value ? Number(document.getElementById("lck-ahorro").value) : null,
+    })});
+    msg.textContent = "Propuesta creada."; msg.className="msg ok";
+    document.getElementById("lck-titulo").value = "";
+    await loadLcKaizen();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadLcKaizen(){
+  const [lista, resumen] = await Promise.all([api("/api/lean-captura/kaizen"), api("/api/lean-captura/kaizen/resumen")]);
+  document.getElementById("lck-resumen").innerHTML = `
+    <div class="stat-box"><div class="lbl">Total</div><div class="val">${resumen.total}</div></div>
+    ${Object.entries(resumen.por_estado).map(([k,v])=>`<div class="stat-box"><div class="lbl">${k.replace(/_/g," ")}</div><div class="val">${v}</div></div>`).join("")}
+    <div class="stat-box"><div class="lbl">Ahorro implementado</div><div class="val">${money(resumen.ahorro_implementado_total)}</div></div>
+  `;
+  document.getElementById("lck-body").innerHTML = lista.map(k=>`
+    <tr><td>${k.area}</td><td>${k.titulo}</td><td>${k.responsable||"—"}</td>
+    <td>${k.ahorro_estimado!=null?money(k.ahorro_estimado):"—"}</td>
+    <td><span class="badge ${k.estado==='IMPLEMENTADA'?'ok':k.estado==='DESCARTADA'?'danger':k.estado==='EN_CURSO'?'warn':'neutral'}">${k.estado}</span></td>
+    <td>
+      <select id="kz-next-${k.id}" style="padding:5px 6px;border:1px solid var(--border);border-radius:6px;">
+        ${ESTADOS_KAIZEN.filter(e=>e!==k.estado).map(e=>`<option value="${e}">${e}</option>`).join("")}
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="avanzarKaizenLC(${k.id})">Aplicar</button>
+    </td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="6">Sin propuestas registradas</td></tr>`;
+}
+async function avanzarKaizenLC(id){
+  const nuevo = document.getElementById(`kz-next-${id}`).value;
+  try{ await api(`/api/lean-captura/kaizen/${id}/avanzar`, {method:"POST", body: JSON.stringify({nuevo_estado: nuevo})}); await loadLcKaizen(); }
+  catch(e){ alert(e.message); }
+}
+
+/* ---- SMED ---- */
+async function crearSmed(){
+  const msg = document.getElementById("lcsmed-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/lean-captura/smed", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("lcsmed-sucursal").value),
+      proceso: document.getElementById("lcsmed-proceso").value,
+      tiempo_setup_antes_min: Number(document.getElementById("lcsmed-antes").value),
+      tiempo_setup_despues_min: document.getElementById("lcsmed-despues").value ? Number(document.getElementById("lcsmed-despues").value) : null,
+      tiempo_interno_min: document.getElementById("lcsmed-interno").value ? Number(document.getElementById("lcsmed-interno").value) : null,
+      tiempo_externo_min: document.getElementById("lcsmed-externo").value ? Number(document.getElementById("lcsmed-externo").value) : null,
+      responsable: document.getElementById("lcsmed-responsable").value,
+    })});
+    msg.textContent = "Registro creado."; msg.className="msg ok";
+    await loadLcSmed();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadLcSmed(){
+  const data = await api("/api/lean-captura/smed");
+  document.getElementById("lcsmed-body").innerHTML = data.map(r=>`
+    <tr><td>${r.proceso}</td><td>${r.tiempo_setup_antes_min.toFixed(1)}</td>
+    <td>${r.tiempo_setup_despues_min!=null?r.tiempo_setup_despues_min.toFixed(1):"—"}</td>
+    <td>${r.mejora_pct!=null?r.mejora_pct.toFixed(1)+"%":"—"}</td>
+    <td>${r.tiempo_interno_min!=null?r.tiempo_interno_min.toFixed(1):"—"}</td>
+    <td>${r.tiempo_externo_min!=null?r.tiempo_externo_min.toFixed(1):"—"}</td>
+    <td>${r.fecha ? new Date(r.fecha).toLocaleDateString() : "—"}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="7">Sin registros SMED</td></tr>`;
+}
+
+/* ---- JIDOKA ---- */
+async function crearJidoka(){
+  const msg = document.getElementById("lcj-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/lean-captura/jidoka", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("lcj-sucursal").value),
+      etapa: document.getElementById("lcj-etapa").value,
+      motivo_paro: document.getElementById("lcj-motivo").value,
+      op_id: document.getElementById("lcj-op").value ? Number(document.getElementById("lcj-op").value) : null,
+      tiempo_paro_min: document.getElementById("lcj-tiempo").value ? Number(document.getElementById("lcj-tiempo").value) : null,
+    })});
+    msg.textContent = "Paro registrado."; msg.className="msg ok";
+    await loadLcJidoka();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadLcJidoka(){
+  const [lista, resumen] = await Promise.all([api("/api/lean-captura/jidoka"), api("/api/lean-captura/jidoka/resumen")]);
+  document.getElementById("lcj-resumen").innerHTML = `
+    <div class="stat-box"><div class="lbl">Total eventos</div><div class="val">${resumen.total_eventos}</div></div>
+    <div class="stat-box"><div class="lbl">Pendientes</div><div class="val">${resumen.pendientes}</div></div>
+    ${resumen.paros_por_etapa.slice(0,3).map(e=>`<div class="stat-box"><div class="lbl">${e.etapa}</div><div class="val">${e.paros}</div></div>`).join("")}
+  `;
+  document.getElementById("lcj-body").innerHTML = lista.map(e=>`
+    <tr><td>${e.etapa}</td><td>${e.motivo_paro}</td><td>${e.tiempo_paro_min!=null?e.tiempo_paro_min+" min":"—"}</td>
+    <td><span class="badge ${e.resuelto?'ok':'danger'}">${e.resuelto?'RESUELTO':'ABIERTO'}</span></td>
+    <td>${e.resuelto ? (e.accion_correctiva||"—") : `<button class="btn btn-ghost btn-sm" onclick="resolverJidokaLC(${e.id})">Resolver</button>`}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="5">Sin eventos Jidoka</td></tr>`;
+}
+async function resolverJidokaLC(id){
+  const accion = prompt("Acción correctiva aplicada:", "") || "";
+  try{ await api(`/api/lean-captura/jidoka/${id}/resolver`, {method:"POST", body: JSON.stringify({accion_correctiva: accion})}); await loadLcJidoka(); }
+  catch(e){ alert(e.message); }
+}
+
+/* ---- ANDON ---- */
+async function crearAndon(){
+  const msg = document.getElementById("lca-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/lean-captura/andon", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("lca-sucursal").value),
+      etapa: document.getElementById("lca-etapa").value,
+      tipo: document.getElementById("lca-tipo").value,
+      descripcion: document.getElementById("lca-descripcion").value,
+    })});
+    msg.textContent = "Alerta creada."; msg.className="msg ok";
+    await loadLcAndon();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadLcAndon(){
+  const [lista, resumen] = await Promise.all([api("/api/lean-captura/andon"), api("/api/lean-captura/andon/resumen")]);
+  document.getElementById("lca-resumen").innerHTML = `
+    <div class="stat-box"><div class="lbl">Total</div><div class="val">${resumen.total}</div></div>
+    <div class="stat-box"><div class="lbl">Activas</div><div class="val">${resumen.activas}</div></div>
+    <div class="stat-box"><div class="lbl">Tiempo resp. prom.</div><div class="val">${resumen.tiempo_respuesta_promedio_min!=null?resumen.tiempo_respuesta_promedio_min.toFixed(1)+" min":"—"}</div></div>
+  `;
+  document.getElementById("lca-body").innerHTML = lista.map(a=>`
+    <tr><td>${a.etapa}</td><td>${a.tipo}</td><td>${a.descripcion||"—"}</td>
+    <td><span class="badge ${a.estado==='ACTIVA'?'danger':'ok'}">${a.estado}</span></td>
+    <td>${a.estado==='ACTIVA' ? `<button class="btn btn-ghost btn-sm" onclick="resolverAndonLC(${a.id})">Resolver</button>` : "—"}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="5">Sin alertas Andon</td></tr>`;
+}
+async function resolverAndonLC(id){
+  try{ await api(`/api/lean-captura/andon/${id}/resolver`, {method:"POST"}); await loadLcAndon(); }
+  catch(e){ alert(e.message); }
+}
+
+/* ---- HEIJUNKA ---- */
+async function crearHeijunka(){
+  const msg = document.getElementById("lch-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    const fechaVal = document.getElementById("lch-fecha").value;
+    await api("/api/lean-captura/heijunka", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("lch-sucursal").value),
+      producto_id: Number(document.getElementById("lch-producto").value),
+      fecha: fechaVal ? new Date(fechaVal).toISOString() : new Date().toISOString(),
+      cantidad_planificada: Number(document.getElementById("lch-cantidad").value),
+    })});
+    msg.textContent = "Plan registrado."; msg.className="msg ok";
+    await loadLcHeijunka();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadLcHeijunka(){
+  const [lista, resumen] = await Promise.all([api("/api/lean-captura/heijunka"), api("/api/lean-captura/heijunka/resumen")]);
+  document.getElementById("lch-resumen").innerHTML = `
+    <div class="stat-box"><div class="lbl">Registros</div><div class="val">${resumen.registros}</div></div>
+    <div class="stat-box"><div class="lbl">Nivelación</div><div class="val" style="font-size:14px;">${resumen.nivelacion}</div></div>
+    <div class="stat-box"><div class="lbl">Cumplimiento prom.</div><div class="val">${resumen.cumplimiento_promedio_pct!=null?resumen.cumplimiento_promedio_pct.toFixed(1)+"%":"—"}</div></div>
+  `;
+  document.getElementById("lch-body").innerHTML = lista.map(p=>`
+    <tr><td>${productoNombre(p.producto_id)}</td><td>${p.fecha ? new Date(p.fecha).toLocaleDateString() : "—"}</td>
+    <td>${p.cantidad_planificada}</td><td>${p.cantidad_real ?? "—"}</td>
+    <td>${(p.cantidad_real!=null && p.cantidad_planificada>0) ? ((p.cantidad_real/p.cantidad_planificada*100).toFixed(1)+"%") : "—"}</td>
+    <td>${p.cantidad_real==null ? `<input type="number" id="hj-real-${p.id}" style="width:80px;padding:5px;border:1px solid var(--border);border-radius:6px;"> <button class="btn btn-ghost btn-sm" onclick="actualizarHeijunkaReal(${p.id})">Guardar</button>` : "—"}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="6">Sin planes Heijunka</td></tr>`;
+}
+async function actualizarHeijunkaReal(id){
+  const val = document.getElementById(`hj-real-${id}`).value;
+  if(!val) return;
+  try{ await api(`/api/lean-captura/heijunka/${id}/real`, {method:"POST", body: JSON.stringify({cantidad_real: Number(val)})}); await loadLcHeijunka(); }
+  catch(e){ alert(e.message); }
+}
+
+/* ---- VSM ---- */
+async function crearVsmPaso(){
+  const msg = document.getElementById("lcv-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/lean-captura/vsm", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("lcv-sucursal").value),
+      proceso: document.getElementById("lcv-proceso").value,
+      orden: Number(document.getElementById("lcv-orden").value),
+      nombre_paso: document.getElementById("lcv-nombre").value,
+      tiempo_ciclo_min: Number(document.getElementById("lcv-ciclo").value),
+      tiempo_espera_min: Number(document.getElementById("lcv-espera").value || 0),
+      valor_agregado: document.getElementById("lcv-valor").value === "true",
+    })});
+    msg.textContent = "Paso agregado."; msg.className="msg ok";
+    await loadLcVsm();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadLcVsm(){
+  const procesos = await api("/api/lean-captura/vsm/procesos");
+  const sel = document.getElementById("lcv-proceso-select");
+  const previo = sel.value;
+  sel.innerHTML = procesos.map(p=>`<option value="${p}">${p}</option>`).join("") || `<option value="">Sin procesos aún</option>`;
+  if(procesos.includes(previo)) sel.value = previo;
+  await loadVsmResumen();
+}
+async function loadVsmResumen(){
+  const proceso = document.getElementById("lcv-proceso-select").value;
+  if(!proceso){
+    document.getElementById("lcv-resumen").innerHTML = "";
+    document.getElementById("lcv-body").innerHTML = `<tr class="empty-row"><td colspan="5">Agrega pasos para ver el mapa de flujo de valor</td></tr>`;
+    return;
+  }
+  const data = await api(`/api/lean-captura/vsm/${encodeURIComponent(proceso)}`);
+  document.getElementById("lcv-resumen").innerHTML = `
+    <div class="stat-box"><div class="lbl">Lead time total</div><div class="val">${data.lead_time_total_min.toFixed(1)} min</div></div>
+    <div class="stat-box"><div class="lbl">T. ciclo total</div><div class="val">${data.tiempo_ciclo_total_min.toFixed(1)} min</div></div>
+    <div class="stat-box"><div class="lbl">T. espera total</div><div class="val">${data.tiempo_espera_total_min.toFixed(1)} min</div></div>
+    <div class="stat-box"><div class="lbl">% valor agregado</div><div class="val">${data.pct_valor_agregado!=null?data.pct_valor_agregado.toFixed(1)+"%":"—"}</div></div>
+  `;
+  document.getElementById("lcv-body").innerHTML = data.pasos.map(p=>`
+    <tr><td>${p.orden}</td><td>${p.nombre_paso}</td><td>${p.tiempo_ciclo_min.toFixed(1)}</td>
+    <td>${p.tiempo_espera_min.toFixed(1)}</td><td><span class="badge ${p.valor_agregado?'ok':'neutral'}">${p.valor_agregado?'Sí':'No'}</span></td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="5">Sin pasos registrados</td></tr>`;
+}
+
+/* =======================================================================
+   SIX SIGMA SPC (control estadístico de procesos)
+   ======================================================================= */
+async function loadSpcView(){
+  const variables = await api("/api/calidad/variables");
+  const sel = document.getElementById("spc-var-select");
+  const previo = sel.value;
+  sel.innerHTML = variables.map(v=>`<option value="${v}">${v}</option>`).join("") || `<option value="">Sin variables aún</option>`;
+  if(variables.includes(previo)) sel.value = previo;
+  await loadSpcVariable();
+}
+async function crearMedicionSPC(){
+  const msg = document.getElementById("spc-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/calidad/mediciones", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("spc-sucursal").value),
+      variable: document.getElementById("spc-variable").value,
+      valor: Number(document.getElementById("spc-valor").value),
+      producto_id: document.getElementById("spc-producto").value ? Number(document.getElementById("spc-producto").value) : null,
+      lote: document.getElementById("spc-lote").value,
+    })});
+    msg.textContent = "Medición registrada."; msg.className="msg ok";
+    document.getElementById("spc-valor").value = "";
+    await loadSpcView();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadSpcVariable(){
+  const variable = document.getElementById("spc-var-select").value;
+  if(!variable){
+    document.getElementById("spc-cartarow").innerHTML = "";
+    document.getElementById("spc-carta-body").innerHTML = `<tr class="empty-row"><td colspan="5">Registra mediciones para ver la carta de control</td></tr>`;
+    document.getElementById("spc-hist-body").innerHTML = "";
+    return;
+  }
+  const [carta, hist] = await Promise.all([
+    api(`/api/calidad/control-chart/${encodeURIComponent(variable)}`),
+    api(`/api/calidad/histograma/${encodeURIComponent(variable)}`),
+  ]);
+  if(carta.media === null){
+    document.getElementById("spc-cartarow").innerHTML = `<div class="stat-box"><div class="lbl">Estado</div><div class="val" style="font-size:13px;">${carta.mensaje}</div></div>`;
+    document.getElementById("spc-carta-body").innerHTML = `<tr class="empty-row"><td colspan="5">${carta.mensaje}</td></tr>`;
+  } else {
+    document.getElementById("spc-cartarow").innerHTML = `
+      <div class="stat-box"><div class="lbl">Media</div><div class="val">${carta.media.toFixed(2)}</div></div>
+      <div class="stat-box"><div class="lbl">LCL</div><div class="val">${carta.lcl_x.toFixed(2)}</div></div>
+      <div class="stat-box"><div class="lbl">UCL</div><div class="val">${carta.ucl_x.toFixed(2)}</div></div>
+      <div class="stat-box"><div class="lbl">Estado</div><div class="val" style="font-size:16px;"><span class="badge ${carta.proceso_bajo_control?'ok':'danger'}">${carta.proceso_bajo_control?'BAJO CONTROL':'FUERA DE CONTROL'}</span></div></div>
+    `;
+    document.getElementById("spc-carta-body").innerHTML = carta.puntos.map((p,i)=>`
+      <tr><td>${i+1}</td><td>${p.valor}</td><td>${p.lote||"—"}</td>
+      <td>${p.fecha ? new Date(p.fecha).toLocaleString() : "—"}</td>
+      <td><span class="badge ${p.fuera_de_control?'danger':'ok'}">${p.fuera_de_control?'Fuera':'OK'}</span></td></tr>
+    `).join("") || `<tr class="empty-row"><td colspan="5">Sin puntos</td></tr>`;
+  }
+  document.getElementById("spc-hist-body").innerHTML = (hist.bins||[]).map(b=>`
+    <tr><td>${b.desde.toFixed(2)} – ${b.hasta.toFixed(2)}</td><td>${b.frecuencia}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="2">Sin datos</td></tr>`;
+}
+async function calcularCpCpk(){
+  const variable = document.getElementById("spc-var-select").value;
+  const body = document.getElementById("spc-cpk-body");
+  if(!variable){ body.innerHTML = "Selecciona una variable primero."; return; }
+  const lsl = Number(document.getElementById("spc-lsl").value);
+  const usl = Number(document.getElementById("spc-usl").value);
+  try{
+    const data = await api(`/api/calidad/cp-cpk/${encodeURIComponent(variable)}`, {method:"POST", body: JSON.stringify({lsl, usl})});
+    if(data.cp === null){ body.innerHTML = data.mensaje; return; }
+    body.innerHTML = `
+      <div class="grid cols-2" style="gap:10px;">
+        <div><div class="note">Cp</div><div class="big" style="font-size:22px;">${data.cp.toFixed(2)}</div></div>
+        <div><div class="note">Cpk</div><div class="big" style="font-size:22px;">${data.cpk.toFixed(2)}</div></div>
+      </div>
+      <div class="note" style="margin-top:10px;">Media: ${data.media.toFixed(2)} · Desv. estándar: ${data.desviacion_estandar.toFixed(2)} · Muestras: ${data.muestras}</div>
+      <div style="margin-top:8px;font-weight:600;font-size:13px;">${data.interpretacion}</div>`;
+  }catch(e){ body.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`; }
+}
+
+/* =======================================================================
+   INTELIGENCIA COMPETITIVA
+   ======================================================================= */
+async function loadCompetenciaView(){
+  await loadCompetenciaProducto();
+}
+async function registrarPrecioCompetencia(){
+  const msg = document.getElementById("comp-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/competencia/precios", {method:"POST", body: JSON.stringify({
+      producto_id: Number(document.getElementById("comp-producto-reg").value),
+      competidor: document.getElementById("comp-competidor").value,
+      precio: Number(document.getElementById("comp-precio").value),
+      sucursal_id: document.getElementById("comp-sucursal").value ? Number(document.getElementById("comp-sucursal").value) : null,
+    })});
+    msg.textContent = "Precio registrado."; msg.className="msg ok";
+    document.getElementById("comp-competidor").value = "";
+    document.getElementById("comp-precio").value = "";
+    if(document.getElementById("comp-producto-consulta").value === document.getElementById("comp-producto-reg").value) await loadCompetenciaProducto();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadCompetenciaProducto(){
+  const productoId = document.getElementById("comp-producto-consulta").value;
+  if(!productoId) return;
+  const [comparativo, elasticidad] = await Promise.all([
+    api(`/api/competencia/comparativo/${productoId}`),
+    api(`/api/competencia/elasticidad/${productoId}`),
+  ]);
+  document.getElementById("comp-comparativo").innerHTML = `
+    <div class="kv-list">
+      <div class="kv-row"><span>Precio propio promedio</span><b>${comparativo.precio_propio_promedio!=null?money(comparativo.precio_propio_promedio):"—"}</b></div>
+      <div class="kv-row"><span>Precio competencia promedio</span><b>${comparativo.precio_competencia_promedio!=null?money(comparativo.precio_competencia_promedio):"—"}</b></div>
+      <div class="kv-row"><span>Mínimo / Máximo</span><b>${comparativo.precio_competencia_min!=null?money(comparativo.precio_competencia_min)+" / "+money(comparativo.precio_competencia_max):"—"}</b></div>
+    </div>`;
+  document.getElementById("comp-elasticidad").innerHTML = elasticidad.elasticidad != null ? `
+    <div class="kv-list">
+      <div class="kv-row"><span>Elasticidad (e)</span><b>${elasticidad.elasticidad.toFixed(2)}</b></div>
+      <div class="kv-row"><span>Interpretación</span><span>${elasticidad.interpretacion}</span></div>
+      <div class="kv-row"><span>Días con venta / precios distintos</span><b>${elasticidad.dias_con_venta} / ${elasticidad.precios_distintos_observados}</b></div>
+    </div>` : `<div class="note">${elasticidad.mensaje}</div>`;
+  document.getElementById("comp-competencia-body").innerHTML = comparativo.competencia.map(c=>`
+    <tr><td>${c.competidor}</td><td>${money(c.precio)}</td>
+    <td>${c.diferencia_vs_propio_pct!=null?c.diferencia_vs_propio_pct.toFixed(1)+"%":"—"}</td>
+    <td>${c.fecha?new Date(c.fecha).toLocaleDateString():"—"}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="4">Sin precios de competencia registrados</td></tr>`;
+  await loadPrecioRecomendado();
+}
+async function loadPrecioRecomendado(){
+  const productoId = document.getElementById("comp-producto-consulta").value;
+  const sucursalId = document.getElementById("comp-precio-rec-sucursal").value;
+  const body = document.getElementById("comp-precio-rec");
+  if(!productoId || !sucursalId){ body.innerHTML = "—"; return; }
+  try{
+    const data = await api(`/api/competencia/precio-recomendado/${productoId}?sucursal_id=${sucursalId}`);
+    body.innerHTML = `
+      <div class="kv-list">
+        <div class="kv-row"><span>Costo real unitario</span><b>${money(data.costo_real_unitario)}</b></div>
+        <div class="kv-row"><span>Margen objetivo / ajustado</span><b>${data.margen_objetivo_tienda_pct.toFixed(1)}% / ${data.margen_ajustado_pct.toFixed(1)}%</b></div>
+        <div class="kv-row"><span>Precio recomendado</span><b style="color:var(--accent);font-size:15px;">${money(data.precio_recomendado)}</b></div>
+        <div class="kv-row"><span>Precio propio actual</span><b>${data.precio_propio_actual!=null?money(data.precio_propio_actual):"—"}</b></div>
+      </div>
+      <div class="note" style="margin-top:8px;">${data.ajuste_por_elasticidad}</div>`;
+  }catch(e){ body.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`; }
+}
+async function simularPromocionComp(){
+  const productoId = document.getElementById("comp-producto-consulta").value;
+  const body = document.getElementById("comp-simulacion");
+  if(!productoId){ body.innerHTML = "Selecciona un producto primero."; return; }
+  const descuento = Number(document.getElementById("comp-descuento").value);
+  try{
+    const data = await api("/api/competencia/simular-promocion", {method:"POST", body: JSON.stringify({producto_id: Number(productoId), descuento_pct: descuento})});
+    body.innerHTML = `
+      <div class="kv-list">
+        <div class="kv-row"><span>Precio actual → con descuento</span><b>${money(data.precio_actual)} → ${money(data.precio_con_descuento)}</b></div>
+        <div class="kv-row"><span>Cantidad diaria actual → proyectada</span><b>${data.cantidad_diaria_actual_estimada.toFixed(1)} → ${data.cantidad_diaria_proyectada.toFixed(1)}</b></div>
+        <div class="kv-row"><span>Venta diaria actual → proyectada</span><b>${money(data.venta_diaria_actual_estimada)} → ${money(data.venta_diaria_proyectada)}</b></div>
+        <div class="kv-row"><span>Variación</span><b style="color:${data.variacion_venta_diaria_pct>=0?'var(--ok)':'var(--danger)'};">${data.variacion_venta_diaria_pct!=null?data.variacion_venta_diaria_pct.toFixed(1)+"%":"—"}</b></div>
+      </div>
+      ${data.mensaje ? `<div class="note" style="margin-top:8px;">${data.mensaje}</div>` : ""}`;
+  }catch(e){ body.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`; }
+}
+
+/* =======================================================================
+   INTELIGENCIA TRIBUTARIA (control documental SUNAT)
+   ======================================================================= */
+async function loadTributariaView(){
+  await Promise.all([loadDocumentosTrib(), loadVentasSinDocumento(), loadReporteMermasDesmedros()]);
+}
+async function emitirDocumentoTrib(){
+  const msg = document.getElementById("trib-msg"); msg.textContent=""; msg.className="msg";
+  try{
+    await api("/api/tributaria/documentos", {method:"POST", body: JSON.stringify({
+      sucursal_id: Number(document.getElementById("trib-sucursal").value),
+      tipo: document.getElementById("trib-tipo").value,
+      serie: document.getElementById("trib-serie").value,
+      numero: document.getElementById("trib-numero").value,
+      venta_id: document.getElementById("trib-venta").value ? Number(document.getElementById("trib-venta").value) : null,
+      despacho_id: document.getElementById("trib-despacho").value ? Number(document.getElementById("trib-despacho").value) : null,
+      monto: document.getElementById("trib-monto").value ? Number(document.getElementById("trib-monto").value) : null,
+    })});
+    msg.textContent = "Documento emitido."; msg.className="msg ok";
+    document.getElementById("trib-serie").value = ""; document.getElementById("trib-numero").value = "";
+    await loadTributariaView();
+  }catch(e){ msg.textContent = e.message; msg.className="msg err"; }
+}
+async function loadDocumentosTrib(){
+  const tipo = document.getElementById("trib-filtro-tipo").value;
+  const estado = document.getElementById("trib-filtro-estado").value;
+  const params = new URLSearchParams();
+  if(tipo) params.set("tipo", tipo);
+  if(estado) params.set("estado", estado);
+  const data = await api(`/api/tributaria/documentos${params.toString()?"?"+params.toString():""}`);
+  document.getElementById("trib-docs-body").innerHTML = data.map(d=>`
+    <tr><td>${d.tipo.replace(/_/g," ")}</td><td class="mono">${d.serie}-${d.numero}</td>
+    <td>${d.monto!=null?money(d.monto):"—"}</td>
+    <td><span class="badge ${d.estado==='ANULADO'?'danger':'ok'}">${d.estado}</span></td>
+    <td>${d.estado==='EMITIDO' ? `<button class="btn btn-ghost btn-sm" onclick="anularDocumentoTrib(${d.id})">Anular</button>` : "—"}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="5">Sin documentos emitidos</td></tr>`;
+}
+async function anularDocumentoTrib(id){
+  const motivo = prompt("Motivo de anulación:", "") || "";
+  try{ await api(`/api/tributaria/documentos/${id}/anular`, {method:"POST", body: JSON.stringify({motivo})}); await loadDocumentosTrib(); }
+  catch(e){ alert(e.message); }
+}
+async function loadVentasSinDocumento(){
+  const data = await api("/api/tributaria/ventas-sin-documento");
+  document.getElementById("trib-sindoc-body").innerHTML = data.map(v=>`
+    <tr><td>${productoNombre(v.producto_id)}</td><td>${sucursalNombre(v.sucursal_id)}</td><td>${v.cantidad_vendida}</td><td>${money(v.total_venta)}</td></tr>
+  `).join("") || `<tr class="empty-row"><td colspan="4">Todas las ventas tienen documento SUNAT</td></tr>`;
+}
+async function loadReporteMermasDesmedros(){
+  const data = await api("/api/tributaria/reporte-mermas-desmedros");
+  document.getElementById("trib-mermdesm-resumen").innerHTML = `
+    <div class="stat-box"><div class="lbl">Mermas (registros)</div><div class="val">${data.mermas.cantidad_registros}</div></div>
+    <div class="stat-box"><div class="lbl">Valor mermas</div><div class="val">${money(data.mermas.valor_total)}</div></div>
+    <div class="stat-box"><div class="lbl">Desmedros (registros)</div><div class="val">${data.desmedros.cantidad_registros}</div></div>
+    <div class="stat-box"><div class="lbl">Valor desmedros</div><div class="val">${money(data.desmedros.valor_total)}</div></div>
+    <div class="stat-box"><div class="lbl">Total pérdidas</div><div class="val">${money(data.valor_total_perdidas)}</div></div>
+  `;
+  document.getElementById("trib-desmedro-nota").textContent = data.desmedros.nota;
+}
+</script>
+</body>
+</html>

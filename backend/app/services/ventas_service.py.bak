@@ -1,0 +1,97 @@
+from decimal import Decimal
+
+from sqlalchemy.orm import Session
+
+from app.models.organizacion import Sucursal
+from app.models.productos import Producto
+from app.models.ventas import Venta
+
+
+def registrar_venta(
+    db: Session, sucursal_id: int, producto_id: int, cantidad_vendida: float, total_venta: float
+) -> Venta:
+    venta = Venta(
+        sucursal_id=sucursal_id,
+        producto_id=producto_id,
+        cantidad_vendida=cantidad_vendida,
+        total_venta=total_venta,
+    )
+    db.add(venta)
+    db.commit()
+    db.refresh(venta)
+    return venta
+
+
+def rentabilidad_por_tienda(db: Session, costos_unitarios: dict[int, float]) -> list[dict]:
+    """Cruza las ventas POS registradas con el costo unitario real de producción (por producto)
+    para obtener la rentabilidad real por tienda: venta real vs. costo real de producción,
+    y compara el margen logrado contra el margen objetivo propio de cada tienda."""
+    ventas = db.query(Venta).all()
+    resumen: dict[tuple[int, int], dict] = {}
+
+    for v in ventas:
+        clave = (v.sucursal_id, v.producto_id)
+        # Hallazgo N°2 (auditoría): un producto ausente de costos_unitarios significa que no
+        # hay costo real verificable (ej. tienda sin lotes con stock disponible), no que su
+        # costo sea cero. Se distingue explícitamente para no inflar el margen.
+        costo_disponible = v.producto_id in costos_unitarios
+        costo_unitario = Decimal(str(costos_unitarios.get(v.producto_id, 0)))
+        costo_estimado = Decimal(str(v.cantidad_vendida)) * costo_unitario
+        if clave not in resumen:
+            resumen[clave] = {
+                "sucursal_id": v.sucursal_id,
+                "producto_id": v.producto_id,
+                "cantidad_vendida": Decimal("0"),
+                "total_venta": Decimal("0"),
+                "costo_total_estimado": Decimal("0"),
+                "costo_disponible": True,
+            }
+        r = resumen[clave]
+        r["cantidad_vendida"] += Decimal(str(v.cantidad_vendida))
+        r["total_venta"] += Decimal(str(v.total_venta))
+        r["costo_total_estimado"] += costo_estimado
+        if not costo_disponible:
+            r["costo_disponible"] = False
+
+    salida = []
+    for r in resumen.values():
+        sucursal = db.query(Sucursal).get(r["sucursal_id"])
+        margen_objetivo = Decimal(str(sucursal.margen_objetivo)) if sucursal else Decimal("0.12")
+
+        if not r["costo_disponible"]:
+            # Hallazgo N°2: sin costo real verificable no se calcula margen (evita
+            # que un costo faltante se interprete como costo cero -> margen 100%).
+            estado = "COSTO_NO_DISPONIBLE"
+            utilidad_real = None
+            margen_real = None
+        else:
+            utilidad_real = r["total_venta"] - r["costo_total_estimado"]
+            margen_real = (utilidad_real / r["total_venta"] * 100) if r["total_venta"] > 0 else Decimal("0")
+            if r["total_venta"] <= 0:
+                estado = "SIN_VENTAS"
+            elif margen_real < 0:
+                estado = "PERDIDA_REAL"
+            elif margen_real < margen_objetivo * 100:
+                estado = "BAJO_OBJETIVO"
+            else:
+                estado = "CUMPLE_OBJETIVO"
+
+        salida.append(
+            {
+                "sucursal_id": r["sucursal_id"],
+                "producto_id": r["producto_id"],
+                "cantidad_vendida": float(r["cantidad_vendida"]),
+                "total_venta": float(r["total_venta"]),
+                "costo_total_estimado": float(r["costo_total_estimado"]) if r["costo_disponible"] else None,
+                "utilidad_real": float(utilidad_real) if utilidad_real is not None else None,
+                "margen_real_pct": float(margen_real) if margen_real is not None else None,
+                "margen_objetivo_pct": float(margen_objetivo * 100),
+                "estado": estado,
+            }
+        )
+    # COSTO_NO_DISPONIBLE (utilidad_real=None) se ordena al final, no rompe el sort.
+    return sorted(
+        salida,
+        key=lambda r: r["utilidad_real"] if r["utilidad_real"] is not None else float("-inf"),
+        reverse=True,
+    )

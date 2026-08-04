@@ -1,0 +1,298 @@
+"""Dashboard Ejecutivo: agrega datos ya existentes (ventas, producción, mermas,
+inventario) en los indicadores que un gerente revisa a diario. No introduce
+verdad de negocio nueva: todo se deriva de los mismos registros transaccionales
+que ya usan los demás módulos, para evitar dos fuentes de verdad."""
+from collections import defaultdict
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+
+from sqlalchemy.orm import Session
+
+from app.models.mermas import Merma
+from app.models.organizacion import Sucursal
+from app.models.produccion import EstadoOP, OrdenProduccion
+from app.models.productos import Producto
+from app.models.recetas import RecetaVersion
+from app.models.ventas import Venta
+from app.services import inventario_service, recetas_service, ventas_service
+
+# Estados considerados "pedido en curso" (no facturado todavía).
+ESTADOS_PENDIENTES = [e for e in EstadoOP if e != EstadoOP.FACTURADO]
+
+
+def _costos_unitarios_vigentes(db: Session, almacen_id: int) -> dict[int, float]:
+    """Costo estándar actual por producto con receta activa, en el almacén dado."""
+    productos_con_receta = {
+        r.producto_id for r in db.query(RecetaVersion).filter(RecetaVersion.activa.is_(True))
+    }
+    costos: dict[int, float] = {}
+    for producto_id in productos_con_receta:
+        try:
+            registro = recetas_service.calcular_costo_estandar(db, producto_id, almacen_id)
+            costos[producto_id] = float(registro.costo_unitario)
+        except ValueError:
+            continue
+    return costos
+
+
+def _rentabilidad_global(db: Session) -> list[dict]:
+    """Rentabilidad por tienda/producto consolidada sobre TODAS las sucursales
+    (cada sucursal usa su propio almacén y su propio costo estándar vigente)."""
+    filas: list[dict] = []
+    for sucursal in db.query(Sucursal).all():
+        almacen = inventario_service.obtener_o_crear_almacen(db, sucursal.id)
+        costos = _costos_unitarios_vigentes(db, almacen.id)
+        for fila in ventas_service.rentabilidad_por_tienda(db, costos, sucursal.id):
+            if fila["sucursal_id"] == sucursal.id:
+                fila["sucursal_nombre"] = sucursal.nombre
+                filas.append(fila)
+    return filas
+
+
+def resumen_ejecutivo(db: Session, sucursal_id: int | None = None) -> dict:
+    """Si `sucursal_id` se indica, todo el resumen se filtra a esa tienda
+    (usuarios de tienda solo ven su propia información). Si es None, el
+    resumen es consolidado para todas las sucursales (solo usuarios con
+    el permiso 'organizacion.multisucursal', validado en el router)."""
+    hoy = date.today()
+    inicio_hoy = datetime.combine(hoy, datetime.min.time())
+
+    # --- Ventas ---
+    ventas_todas = db.query(Venta).all()
+    if sucursal_id is not None:
+        ventas_todas = [v for v in ventas_todas if v.sucursal_id == sucursal_id]
+    ventas_hoy = [v for v in ventas_todas if v.creado_en and v.creado_en >= inicio_hoy]
+    total_ventas_hoy = float(sum(Decimal(str(v.total_venta)) for v in ventas_hoy))
+    total_ventas_historico = float(sum(Decimal(str(v.total_venta)) for v in ventas_todas))
+
+    # --- Producción ---
+    ops_todas = db.query(OrdenProduccion).all()
+    if sucursal_id is not None:
+        ops_todas = [op for op in ops_todas if op.sucursal_id == sucursal_id]
+    ops_hoy = [op for op in ops_todas if op.creado_en and op.creado_en >= inicio_hoy]
+    unidades_producidas_hoy = float(
+        sum(Decimal(str(op.cantidad_producida or 0)) for op in ops_hoy)
+    )
+    pedidos_pendientes = sum(1 for op in ops_todas if op.estado != EstadoOP.FACTURADO)
+
+    # --- Mermas ---
+    mermas = db.query(Merma).all()
+    if sucursal_id is not None:
+        almacenes_ids = {
+            a.id for a in db.query(inventario_service.Almacen).filter(
+                inventario_service.Almacen.sucursal_id == sucursal_id
+            )
+        }
+        mermas = [m for m in mermas if m.almacen_id in almacenes_ids]
+    mermas_hoy = [m for m in mermas if m.creado_en and m.creado_en >= inicio_hoy]
+    merma_valor_hoy = float(sum(Decimal(str(m.costo_valorizado)) for m in mermas_hoy))
+    merma_valor_total = float(sum(Decimal(str(m.costo_valorizado)) for m in mermas))
+
+    # --- Rentabilidad / utilidad / margen / EBITDA aproximado ---
+    rentabilidad = _rentabilidad_global(db)
+    if sucursal_id is not None:
+        rentabilidad = [r for r in rentabilidad if r["sucursal_id"] == sucursal_id]
+    utilidad_total = sum(r["utilidad_real"] for r in rentabilidad)
+    venta_total_rentab = sum(r["total_venta"] for r in rentabilidad)
+    margen_pct = (utilidad_total / venta_total_rentab * 100) if venta_total_rentab > 0 else 0.0
+    # EBITDA aproximado: utilidad real (venta - costo real de producción) sin
+    # gastos financieros ni depreciación, que este ERP no modela todavía.
+    ebitda_aproximado = utilidad_total
+
+    # --- Semáforos por tienda ---
+    semaforos = []
+    por_sucursal: dict[int, list[dict]] = defaultdict(list)
+    for r in rentabilidad:
+        por_sucursal[r["sucursal_id"]].append(r)
+    color_por_estado = {
+        "CUMPLE_OBJETIVO": "verde",
+        "BAJO_OBJETIVO": "amarillo",
+        "PERDIDA_REAL": "rojo",
+        "SIN_VENTAS": "gris",
+    }
+    for sucursal in db.query(Sucursal).all():
+        filas = por_sucursal.get(sucursal.id, [])
+        utilidad_sucursal = sum(f["utilidad_real"] for f in filas)
+        venta_sucursal = sum(f["total_venta"] for f in filas)
+        margen_sucursal = (utilidad_sucursal / venta_sucursal * 100) if venta_sucursal > 0 else 0.0
+        if not filas:
+            estado = "SIN_VENTAS"
+        elif margen_sucursal < 0:
+            estado = "PERDIDA_REAL"
+        elif margen_sucursal < float(sucursal.margen_objetivo) * 100:
+            estado = "BAJO_OBJETIVO"
+        else:
+            estado = "CUMPLE_OBJETIVO"
+        semaforos.append(
+            {
+                "sucursal_id": sucursal.id,
+                "sucursal_nombre": sucursal.nombre,
+                "venta_total": venta_sucursal,
+                "utilidad_total": utilidad_sucursal,
+                "margen_pct": margen_sucursal,
+                "estado": estado,
+                "color": color_por_estado[estado],
+            }
+        )
+
+    # --- Rankings ---
+    ranking_tiendas = sorted(semaforos, key=lambda s: s["utilidad_total"], reverse=True)
+    productos_map = {p.id: p.nombre for p in db.query(Producto).all()}
+    utilidad_por_producto: dict[int, float] = defaultdict(float)
+    venta_por_producto: dict[int, float] = defaultdict(float)
+    for r in rentabilidad:
+        utilidad_por_producto[r["producto_id"]] += r["utilidad_real"]
+        venta_por_producto[r["producto_id"]] += r["total_venta"]
+    ranking_productos = sorted(
+        (
+            {
+                "producto_id": pid,
+                "producto_nombre": productos_map.get(pid, f"Producto {pid}"),
+                "utilidad_total": utilidad_por_producto[pid],
+                "venta_total": venta_por_producto[pid],
+            }
+            for pid in utilidad_por_producto
+        ),
+        key=lambda x: x["utilidad_total"],
+        reverse=True,
+    )
+
+    # --- Forecast simple: promedio diario de ventas de los últimos 7 días x 7 ---
+    hace_7_dias = inicio_hoy - timedelta(days=7)
+    ventas_recientes = [v for v in ventas_todas if v.creado_en and v.creado_en >= hace_7_dias]
+    ventas_por_dia: dict[date, float] = defaultdict(float)
+    for v in ventas_recientes:
+        ventas_por_dia[v.creado_en.date()] += float(v.total_venta)
+    dias_con_datos = max(len(ventas_por_dia), 1)
+    promedio_diario = sum(ventas_por_dia.values()) / dias_con_datos
+    forecast_proxima_semana = promedio_diario * 7
+
+    return {
+        "fecha": hoy.isoformat(),
+        "ventas": {
+            "hoy": total_ventas_hoy,
+            "historico": total_ventas_historico,
+        },
+        "produccion": {
+            "unidades_producidas_hoy": unidades_producidas_hoy,
+            "ops_creadas_hoy": len(ops_hoy),
+            "pedidos_pendientes": pedidos_pendientes,
+        },
+        "mermas": {
+            "valor_hoy": merma_valor_hoy,
+            "valor_total": merma_valor_total,
+        },
+        "utilidad": {
+            "total": utilidad_total,
+            "margen_pct": margen_pct,
+            "ebitda_aproximado": ebitda_aproximado,
+        },
+        "forecast": {
+            "promedio_diario_7d": promedio_diario,
+            "proxima_semana": forecast_proxima_semana,
+        },
+        "semaforos_tienda": semaforos,
+        "ranking_tiendas": ranking_tiendas,
+        "ranking_productos": ranking_productos[:10],
+    }
+
+
+def pareto_productos(db: Session, sucursal_id: int | None = None) -> list[dict]:
+    """Análisis ABC/Pareto de productos por venta acumulada (regla 80/20).
+    Filtrado por tienda cuando `sucursal_id` se indica."""
+    rentabilidad = _rentabilidad_global(db)
+    if sucursal_id is not None:
+        rentabilidad = [r for r in rentabilidad if r["sucursal_id"] == sucursal_id]
+    productos_map = {p.id: p.nombre for p in db.query(Producto).all()}
+    venta_por_producto: dict[int, float] = defaultdict(float)
+    for r in rentabilidad:
+        venta_por_producto[r["producto_id"]] += r["total_venta"]
+
+    total = sum(venta_por_producto.values())
+    filas = sorted(
+        (
+            {"producto_id": pid, "producto_nombre": productos_map.get(pid, f"Producto {pid}"), "venta_total": v}
+            for pid, v in venta_por_producto.items()
+        ),
+        key=lambda x: x["venta_total"],
+        reverse=True,
+    )
+    acumulado = 0.0
+    for fila in filas:
+        acumulado += fila["venta_total"]
+        pct_acumulado = (acumulado / total * 100) if total > 0 else 0.0
+        fila["pct_acumulado"] = pct_acumulado
+        if pct_acumulado <= 80:
+            fila["clase_abc"] = "A"
+        elif pct_acumulado <= 95:
+            fila["clase_abc"] = "B"
+        else:
+            fila["clase_abc"] = "C"
+    return filas
+
+
+def xyz_productos(db: Session, dias: int = 30, sucursal_id: int | None = None) -> list[dict]:
+    """Análisis XYZ: clasifica cada producto según la variabilidad de su demanda
+    diaria (coeficiente de variación = desviación estándar / promedio) en los
+    últimos `dias` días de ventas. X = demanda estable y predecible (CV <= 10%),
+    Y = variable (10% < CV <= 25%), Z = errática (CV > 25% o sin ventas).
+    Filtrado por tienda cuando `sucursal_id` se indica."""
+    desde = datetime.utcnow() - timedelta(days=dias)
+    query = db.query(Venta).filter(Venta.creado_en >= desde)
+    if sucursal_id is not None:
+        query = query.filter(Venta.sucursal_id == sucursal_id)
+    ventas = query.all()
+    productos_map = {p.id: p.nombre for p in db.query(Producto).all()}
+
+    por_producto_dia: dict[int, dict[date, float]] = defaultdict(lambda: defaultdict(float))
+    for v in ventas:
+        dia = v.creado_en.date() if v.creado_en else date.today()
+        por_producto_dia[v.producto_id][dia] += float(v.cantidad_vendida)
+
+    filas = []
+    for producto_id, dias_map in por_producto_dia.items():
+        valores = list(dias_map.values())
+        n = len(valores)
+        promedio = sum(valores) / n if n else 0.0
+        varianza = sum((x - promedio) ** 2 for x in valores) / n if n else 0.0
+        desviacion = varianza ** 0.5
+        cv = (desviacion / promedio) if promedio > 0 else None
+        if cv is None:
+            clase = "Z"
+        elif cv <= 0.10:
+            clase = "X"
+        elif cv <= 0.25:
+            clase = "Y"
+        else:
+            clase = "Z"
+        filas.append(
+            {
+                "producto_id": producto_id,
+                "producto_nombre": productos_map.get(producto_id, f"Producto {producto_id}"),
+                "demanda_promedio_diaria": promedio,
+                "coeficiente_variacion": cv,
+                "clase_xyz": clase,
+            }
+        )
+    return sorted(filas, key=lambda f: f["clase_xyz"])
+
+
+def ranking_tiendas_por_producto(db: Session, producto_id: int) -> list[dict]:
+    """Ranking de tiendas por volumen vendido de un producto específico
+    (soporta la pregunta 'qué tienda vende más X')."""
+    sucursales_map = {s.id: s.nombre for s in db.query(Sucursal).all()}
+    ventas = db.query(Venta).filter(Venta.producto_id == producto_id).all()
+    por_tienda: dict[int, dict] = defaultdict(lambda: {"cantidad": 0.0, "monto": 0.0})
+    for v in ventas:
+        por_tienda[v.sucursal_id]["cantidad"] += float(v.cantidad_vendida)
+        por_tienda[v.sucursal_id]["monto"] += float(v.total_venta)
+    filas = [
+        {
+            "sucursal_id": sid,
+            "sucursal_nombre": sucursales_map.get(sid, f"Sucursal {sid}"),
+            "cantidad_vendida": d["cantidad"],
+            "monto_vendido": d["monto"],
+        }
+        for sid, d in por_tienda.items()
+    ]
+    return sorted(filas, key=lambda f: f["monto_vendido"], reverse=True)

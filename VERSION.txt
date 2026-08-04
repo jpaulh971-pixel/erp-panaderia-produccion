@@ -1,0 +1,191 @@
+ERP Panadería Industrial - Core ERP
+
+=====================================================
+VERSION ACTUAL
+=====================================================
+Versión actual: Corrección Hallazgo N°5 (consolidado) + sincronización
+                documental del Hallazgo N°4
+Archivo: ERP_Panaderia_Auditoria_Correccion_Hallazgo04_v2.zip
+Fecha: 2026-08-04
+Estado: VERSION ESTABLE POST-HALLAZGO 05 — DOCUMENTACIÓN COMPLETAMENTE
+        SINCRONIZADA (README.md, VERSION.txt y AUDITORIA_TRAZABILIDAD.md
+        consistentes entre sí, sin hallazgos pendientes)
+(incluye correcciones de los Hallazgos N°1, N°2, N°3, N°6, N°4 y N°5;
+esta versión no modifica backend/ ni frontend/, solo cierra la brecha de
+trazabilidad documental del Hallazgo N°4 en AUDITORIA_TRAZABILIDAD.md)
+
+Ver AUDITORIA_TRAZABILIDAD.md para el detalle técnico completo de cada
+corrección (archivos modificados, resumen técnico y pruebas ejecutadas).
+
+=====================================================
+HALLAZGOS CERRADOS
+=====================================================
+
+Hallazgo N°1: Estado: Cerrado. (2026-08-03)
+  Valorización de inventario de producto terminado (costo real por lote,
+  insumos + mano de obra + CIF vía costo_real_total de la OP en lugar de
+  costo estándar de receta).
+  Archivo modificado: app/services/produccion_service.py
+
+Hallazgo N°2: Estado: Cerrado. (2026-08-03)
+  Rentabilidad por tienda utilizaba costo estándar en lugar de costo real.
+  El endpoint /api/ventas/rentabilidad-por-tienda comparaba venta real contra
+  el costo estándar de receta (calcular_costo_estandar: insumos a costo
+  promedio + merma estimada, sin mano de obra ni CIF). Ahora usa el costo
+  real ponderado del lote de producto terminado en el almacén de la tienda
+  (inventario_service.costo_promedio()).
+  Incluye también el cierre de lo reportado como candidato a "Hallazgo N°6"
+  (mismo código, mismo bug): ventas_service.rentabilidad_por_tienda()
+  agregaba ventas de TODAS las sucursales (db.query(Venta).all() sin
+  filtro), aunque el costo sí se calculaba con el almacén de la sucursal
+  consultada. Se corrigió filtrando por sucursal_id en la misma consulta;
+  se actualizaron en consecuencia sus dos llamadores
+  (app/routers/ventas.py y app/services/kpi_service.py).
+  Archivos modificados: app/routers/ventas.py, app/services/ventas_service.py,
+  app/services/kpi_service.py.
+
+Hallazgo N°3: Estado: Cerrado. (2026-08-04)
+  Permiso incorrecto en registro de mermas: POST /api/mermas exigía
+  "inventario.leer" (permiso de solo lectura) para una operación que
+  descuenta stock real (consumo FEFO) y genera movimiento SALIDA_MERMA.
+  Se creó el permiso "mermas.escribir" y se reemplazó el permiso exigido
+  en el endpoint. Asignado a los roles admin, almacen, produccion y tienda;
+  explícitamente NO asignado a gerencia, compras ni ventas.
+  Archivos modificados: app/routers/mermas.py, seed.py.
+
+Hallazgo N°4: Estado: Cerrado. (2026-08-04)
+  Severidad final: Media (revisada; el diagnóstico inicial la había
+  registrado como Baja).
+  Documentación desactualizada respecto al estado real del proyecto.
+  README.md describía 14 routers / 40 endpoints (cifra de la Sesión 4 de
+  desarrollo) cuando el backend real tiene 18 routers y 78 endpoints.
+  Además, README.md afirmaba en su sección "Pendiente real para una
+  próxima sesión" que Inteligencia Competitiva e Inteligencia Tributaria
+  "no se construyeron", contradiciendo el código: ambos módulos existen
+  completos (modelo, servicio, schema, router y vista de frontend), igual
+  que Calidad (Six Sigma SPC) y Lean Captura (5S/Kaizen/SMED/Jidoka/Andon/
+  Heijunka/VSM), ninguno de los cuatro documentado. Se eleva la severidad
+  de Baja a Media porque no era solo una cifra desactualizada, sino una
+  afirmación activamente incorrecta sobre funcionalidad existente.
+  Corrección: README.md actualizado (routers/endpoints reales, nueva
+  sección documentando los 4 módulos, vistas de frontend completas,
+  sección de pendientes corregida) sin modificar backend/ ni frontend/.
+  Archivo modificado: README.md, VERSION.txt.
+
+Hallazgo N°6: Estado: Cerrado. (2026-08-04)
+  Integridad del empaquetado y estructura del proyecto. El ZIP anterior
+  traía app/ movida a core_erp/bankend/app/ (typo, nombre no documentado),
+  con seed.py y requirements.txt desincronizados en la raíz — ni
+  `python seed.py` ni `uvicorn app.main:app --reload` funcionaban siguiendo
+  el README. No fue una regresión de lógica de negocio (app/ era idéntica
+  byte a byte a la línea base post-Hallazgo N°3).
+  Corrección: adoptada la arquitectura definitiva backend/ + frontend/ +
+  docs/. Se renombró bankend/ → backend/ y se consolidaron dentro de
+  backend/ todos los archivos propios del backend (app/, seed.py,
+  requirements.txt, seed.py.bak). frontend/ se mantiene completamente
+  separado. README.md actualizado para que los comandos oficiales sean
+  `cd backend && pip install -r requirements.txt && python seed.py &&
+  uvicorn app.main:app --reload`. No se modificó ninguna línea de lógica de
+  negocio: solo movimiento de archivos y actualización de documentación.
+  Verificado end-to-end desde backend/: seed.py puebla la base
+  correctamente y uvicorn arranca con /api/health → 200 OK.
+  Archivos modificados: README.md (comandos de arranque y estructura),
+  VERSION.txt, AUDITORIA_TRAZABILIDAD.md.
+  Archivos movidos: bankend/app/ → backend/app/, seed.py → backend/seed.py,
+  seed.py.bak → backend/seed.py.bak, requirements.txt → backend/requirements.txt.
+
+Hallazgo N°5: Estado: Cerrado. (2026-08-04)
+  Las ventas no generaban movimientos de inventario/kardex: POST /api/ventas
+  únicamente insertaba la fila en `ventas` (sin tocar `LoteInventario` ni
+  `MovimientoInventario`); TipoMovimiento.SALIDA_VENTA estaba declarado en el
+  enum pero nunca se usaba en el proyecto; el stock nunca se descontaba al
+  vender y no había forma de reconstruir el costo histórico de una venta.
+  Corrección: ventas_service.registrar_venta() ahora descuenta stock real vía
+  inventario_service.consumir_fefo() (mismo patrón/función ya usada por
+  mermas_service.registrar_merma() y por produccion_service para insumos),
+  generando el movimiento SALIDA_VENTA con referencia al id de la venta.
+  app/routers/ventas.py resuelve el almacén de la sucursal y convierte el
+  ValueError de stock insuficiente en HTTP 400 (mismo patrón que
+  app/routers/mermas.py). No se agregó lote_id a Venta ni a
+  MovimientoInventario (limitación conocida, documentada, ya preexistente en
+  el resto del módulo de inventario para mermas e insumos de producción).
+  Validado end-to-end: descuento de stock correcto, movimiento de kardex
+  persistido, rechazo con 400 ante stock insuficiente sin dejar movimientos
+  parciales, y regresión de los Hallazgos N°1, N°2, N°3 y N°6 sin cambios de
+  comportamiento.
+  Archivos modificados: app/services/ventas_service.py, app/routers/ventas.py.
+  Nota .bak: app/services/ventas_service.py.bak y app/routers/ventas.py.bak
+  (incluidos en zips anteriores como respaldo previo al Hallazgo N°2) ya
+  contenían, sin cambios, la versión de registrar_venta() previa a esta
+  corrección — no fue necesario generar un nuevo .bak porque el existente ya
+  documenta fielmente el estado anterior de esa función.
+
+=====================================================
+HALLAZGOS PENDIENTES
+=====================================================
+
+Ninguno. Los 6 hallazgos detectados durante la auditoría (N°1 a N°6) están
+cerrados y completamente documentados de forma consistente en README.md,
+VERSION.txt (este archivo) y AUDITORIA_TRAZABILIDAD.md.
+
+Nota histórica: la única brecha que quedaba era de trazabilidad documental
+(AUDITORIA_TRAZABILIDAD.md no tenía la sección técnica del Hallazgo N°4 y
+seguía listándolo como pendiente en su tabla), no una brecha de código ni
+de README.md/VERSION.txt, que ya documentaban N°4 como Cerrado desde
+`ERP_Panaderia_Auditoria_Correccion_Hallazgo04_v1.zip`. Esa brecha quedó
+corregida en esta versión (`Hallazgo04_v2.zip`).
+
+=====================================================
+HISTORIAL DE VERSIONES
+=====================================================
+
+  v1 - ERP_Panaderia_Auditoria_Correccion_Hallazgo01_v1.zip (2026-08-03)
+       Cierra Hallazgo N°1.
+
+  v2 - ERP_Panaderia_Auditoria_Correccion_Hallazgo02_v2.zip (2026-08-03)
+       Cierra Hallazgo N°2 (incluye separación por sucursal / "Hallazgo N°6"
+       de rentabilidad, no confundir con el Hallazgo N°6 de estructura
+       cerrado en esta versión).
+       Reemplaza a ERP_Panaderia_Auditoria_Correccion_Hallazgo02_v1.zip,
+       versión intermedia no congelada que aún no incluía el filtro por
+       sucursal_id.
+
+  v3 - ERP_Panaderia_Auditoria_Correccion_Hallazgo03_v1.zip (2026-08-04)
+       Cierra Hallazgo N°3.
+
+  v4 - ERP_Panaderia_Auditoria_Correccion_Hallazgo06_v1.zip (2026-08-04)
+       Cierra Hallazgo N°6 (estructura backend/frontend/docs).
+
+  v5 - ERP_Panaderia_Auditoria_Correccion_Hallazgo04_v1.zip (2026-08-04)
+       Cierra Hallazgo N°4 (documentación desactualizada / incompleta:
+       README.md actualizado, sin cambios de código).
+
+  v6 - ERP_Panaderia_Auditoria_Correccion_Hallazgo05_v1.zip (2026-08-04)
+       Cierra Hallazgo N°5 (ventas ahora descuentan stock real y generan
+       movimiento de kardex SALIDA_VENTA vía consumir_fefo).
+
+  v7 - ERP_Panaderia_Auditoria_Correccion_Hallazgo04_v2.zip (2026-08-04)
+       Sincronización documental del Hallazgo N°4: se incorpora en
+       AUDITORIA_TRAZABILIDAD.md la sección técnica completa del hallazgo
+       (motivo, diagnóstico, archivos revisados, cambios en README.md y
+       VERSION.txt, conteo real de routers/endpoints, módulos nuevos
+       documentados, validación e impacto), se retira N°4 de la tabla de
+       "Hallazgos pendientes" y se actualiza el Resumen Ejecutivo (6/6
+       hallazgos corregidos, 0 pendientes). No se modificó backend/ ni
+       frontend/; solo documentación. VERSION ESTABLE ACTUAL.
+
+=====================================================
+ARCHIVOS .bak INCLUIDOS EN ESTE ZIP (trazabilidad de auditoría)
+=====================================================
+
+  backend/app/services/ventas_service.py.bak     (previo a Hallazgo N°2)
+  backend/app/routers/ventas.py.bak              (previo a Hallazgo N°2)
+  backend/app/services/kpi_service.py.bak        (previo a Hallazgo N°2)
+  backend/app/routers/mermas.py.bak              (previo a Hallazgo N°3)
+  backend/seed.py.bak                            (previo a Hallazgo N°3)
+
+  Nota: no se incluye app/services/produccion_service.py.bak porque el
+  Hallazgo N°1 fue corregido en una fase de auditoría anterior a la
+  trazabilidad detallada de esta sesión; el ZIP
+  ERP_Panaderia_Auditoria_Correccion_Hallazgo01_v1.zip no incluyó backup
+  de ese archivo.

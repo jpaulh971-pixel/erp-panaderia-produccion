@@ -1,0 +1,188 @@
+"""Seed inicial: admin, roles/permisos, empresa demo con 5 sucursales,
+producto insumo + producto terminado con receta, proveedor y stock inicial."""
+from app.database import Base, SessionLocal, engine
+from app.models.auth import Permiso, Rol, Usuario
+from app.models.organizacion import Empresa, Sucursal
+from app.models.productos import Producto, Proveedor, TipoProducto
+from app.security import hash_password
+from app.services import inventario_service, recetas_service
+
+PERMISOS = [
+    "organizacion.leer",
+    "organizacion.multisucursal",  # ver todas las tiendas, no solo la propia
+    "productos.escribir",
+    "inventario.leer",
+    "compras.escribir",
+    "recetas.escribir",
+    "produccion.escribir",
+    "ventas.escribir",
+    "ventas.leer",
+    "mermas.escribir",
+]
+
+# Roles del módulo de Seguridad (spec: Administrador, Gerencia, Producción,
+# Almacén, Compras, Ventas, Tiendas). Cada uno con el subconjunto de permisos
+# que le corresponde; solo admin/gerencia tienen 'organizacion.multisucursal'.
+ROLES_PERMISOS = {
+    "admin": PERMISOS,
+    "gerencia": [
+        "organizacion.leer",
+        "organizacion.multisucursal",
+        "inventario.leer",
+        "ventas.leer",
+    ],
+    "produccion": [
+        "organizacion.leer",
+        "inventario.leer",
+        "produccion.escribir",
+        "recetas.escribir",
+        "mermas.escribir",
+    ],
+    "almacen": [
+        "organizacion.leer",
+        "inventario.leer",
+        "mermas.escribir",
+    ],
+    "compras": [
+        "organizacion.leer",
+        "inventario.leer",
+        "compras.escribir",
+    ],
+    "ventas": [
+        "organizacion.leer",
+        "inventario.leer",
+        "ventas.escribir",
+        "ventas.leer",
+    ],
+    "tienda": [
+        "organizacion.leer",
+        "inventario.leer",
+        "ventas.escribir",
+        "ventas.leer",
+        "produccion.escribir",
+        "mermas.escribir",
+    ],
+}
+
+
+def run():
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        if db.query(Usuario).filter(Usuario.username == "admin").first():
+            print("Ya existe data seed, no se vuelve a crear.")
+            return
+
+        permisos_cache: dict[str, Permiso] = {}
+        roles: dict[str, Rol] = {}
+        for nombre_rol, codigos in ROLES_PERMISOS.items():
+            rol = Rol(nombre=nombre_rol)
+            for codigo in codigos:
+                if codigo not in permisos_cache:
+                    permisos_cache[codigo] = Permiso(codigo=codigo, descripcion=codigo)
+                rol.permisos.append(permisos_cache[codigo])
+            db.add(rol)
+            roles[nombre_rol] = rol
+        db.flush()
+        rol_admin = roles["admin"]
+
+        empresa = Empresa(razon_social="ECCLA S.A.C.", ruc="20603136323")
+        db.add(empresa)
+        db.flush()
+
+        # Códigos explícitos y únicos por sucursal (nombre[:3] colisionaba:
+        # "San Isidro" y "San Borja" generaban ambos "SAN").
+        SUCURSALES_CODIGOS = {
+            "Miraflores": "MIR",
+            "San Isidro": "SIS",
+            "Surco": "SUR",
+            "La Molina": "LAM",
+            "San Borja": "SBO",
+        }
+        nombres_sucursales = list(SUCURSALES_CODIGOS.keys())
+        sucursales = []
+        for nombre in nombres_sucursales:
+            s = Sucursal(
+                empresa_id=empresa.id,
+                codigo=SUCURSALES_CODIGOS[nombre],
+                nombre=nombre,
+                margen_objetivo="0.12",
+            )
+            db.add(s)
+            sucursales.append(s)
+        db.flush()
+
+        admin = Usuario(
+            username="admin",
+            nombre_completo="Administrador",
+            password_hash=hash_password("admin123"),
+            activo=True,
+            sucursal_id=sucursales[0].id,
+        )
+        admin.roles.append(rol_admin)
+        db.add(admin)
+
+        # Un usuario por tienda: cada uno solo ve su propia sucursal
+        # (aislamiento aplicado en app/deps.py:sucursal_scope). Password
+        # de todos: "tienda123".
+        for s in sucursales:
+            u = Usuario(
+                username=f"tienda.{s.codigo.lower()}",
+                nombre_completo=f"Encargado {s.nombre}",
+                password_hash=hash_password("tienda123"),
+                activo=True,
+                sucursal_id=s.id,
+            )
+            u.roles.append(roles["tienda"])
+            db.add(u)
+
+        gerente = Usuario(
+            username="gerencia",
+            nombre_completo="Gerencia General",
+            password_hash=hash_password("gerencia123"),
+            activo=True,
+            sucursal_id=sucursales[0].id,
+        )
+        gerente.roles.append(roles["gerencia"])
+        db.add(gerente)
+
+        harina = Producto(codigo="INS-HARINA", nombre="Harina", unidad="kg", tipo=TipoProducto.INSUMO)
+        azucar = Producto(codigo="INS-AZUCAR", nombre="Azúcar", unidad="kg", tipo=TipoProducto.INSUMO)
+        torta = Producto(codigo="PT-TORTA-CHOC", nombre="Torta de Chocolate", unidad="unidad", tipo=TipoProducto.TERMINADO)
+        db.add_all([harina, azucar, torta])
+        db.flush()
+
+        proveedor = Proveedor(nombre="Molinos del Perú", ruc="20100000001", contacto="ventas@molinos.pe")
+        db.add(proveedor)
+        db.commit()
+
+        almacen = inventario_service.obtener_o_crear_almacen(db, sucursales[0].id)
+        inventario_service.ingresar_lote(db, harina.id, almacen.id, 100, 3.5, referencia="STOCK-INICIAL")
+        inventario_service.ingresar_lote(db, azucar.id, almacen.id, 50, 4.2, referencia="STOCK-INICIAL")
+        db.commit()
+
+        recetas_service.crear_version_receta(
+            db,
+            producto_id=torta.id,
+            rendimiento_unidades=10,
+            ingredientes=[
+                {"insumo_id": harina.id, "cantidad_por_unidad": 0.5},
+                {"insumo_id": azucar.id, "cantidad_por_unidad": 0.3},
+            ],
+            merma_estimada_pct=0.05,
+        )
+
+        print("Seed OK.")
+        print(f"  admin / admin123  (multi-sucursal)")
+        print(f"  gerencia / gerencia123  (multi-sucursal, solo lectura)")
+        print(f"  tienda.<COD> / tienda123  (solo su propia sucursal, ej: tienda.mir)")
+        print(f"  empresa: {empresa.razon_social} (RUC {empresa.ruc})")
+        print(f"  sucursales: {', '.join(nombres_sucursales)} (sucursal admin: {sucursales[0].nombre}, id={sucursales[0].id})")
+        print(f"  producto terminado: {torta.nombre} (id={torta.id}) con receta activa")
+        print(f"  producto insumo harina id={harina.id}, azucar id={azucar.id}")
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    run()
