@@ -1,3 +1,4 @@
+
 # Core ERP — Pastelería Industrial (FastAPI + SQLAlchemy)
 
 Este proyecto reconstruye y valida de punta a punta el backend que se había
@@ -379,3 +380,5 @@ endpoints** (ver conteo actualizado en la sección "Qué se construyó").
 - Validar el flujo completo (`pip install` + `seed.py` + `uvicorn`) en un
   entorno con salida a red, ya que este entorno no la tuvo en la Sesión 3.
 
+
+# dashboard-panaderia
