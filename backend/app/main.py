@@ -56,11 +56,11 @@ app.add_middleware(
 def on_startup():
     Base.metadata.create_all(bind=engine)
 
-
-@app.get("/api/health")
-def health():
-    return {"status": "ok"}
-
+    try:
+        from seed import main as seed_main
+        seed_main()
+    except Exception as e:
+        print(f"Seed omitido: {e}")
 
 app.include_router(auth.router)
 app.include_router(organizacion.router)
