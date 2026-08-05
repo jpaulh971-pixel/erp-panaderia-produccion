@@ -57,8 +57,8 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
 
     try:
-        from seed import main as seed_main
-        seed_main()
+        from seed import run
+        run()
     except Exception as e:
         print(f"Seed omitido: {e}")
 
